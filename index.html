@@ -1,1 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Agendamento Avaliação Física Vila Império</title>
 
+<style>
+
+/* RESET */
+
+body{
+margin:0;
+font-family:Arial;
+background:#f0f2f5;
+}
+
+/* HEADER LOGIN */
+
+.header-login{
+text-align:center;
+padding:30px;
+background:white;
+box-shadow:0 2px 5px rgba(0,0,0,0.2);
+}
+
+.header-login img{
+max-width:180px;
+}
+
+/* LOGIN BOX */
+
+.login-container{
+display:flex;
+justify-content:center;
+align-items:center;
+gap:40px;
+height:60vh;
+}
+
+.login-box{
+
+width:220px;
+height:220px;
+
+border:2px solid #ccc;
+border-radius:12px;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+font-size:22px;
+font-weight:bold;
+
+cursor:pointer;
+
+background:transparent;
+
+transition:0.3s;
+
+}
+
+.login-box:hover{
+
+background:#f5f5f5;
+border-color:#1e88e5;
+color:#1e88e5;
+transform:scale(1.05);
+
+}
+
+/* LAYOUT EVO */
+
+.layout{
+display:flex;
+height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+
+width:260px;
+background:#1f2937;
+color:white;
+
+display:flex;
+flex-direction:column;
+
+}
+
+.sidebar-header{
+
+padding:20px;
+text-align:center;
+border-bottom:1px solid rgba(255,255,255,0.2);
+
+}
+
+.sidebar-header img{
+max-width:80px;
+}
+
+.sidebar button{
+
+background:none;
+border:none;
+color:white;
+padding:15px;
+text-align:left;
+cursor:pointer;
+font-size:16px;
+
+}
+
+.sidebar button:hover{
+background:#374151;
+}
+
+/* CONTENT */
+
+.content{
+flex:1;
+padding:20px;
+overflow:auto;
+}
+
+/* CARD */
+
+.card{
+
+background:white;
+padding:15px;
+margin-bottom:10px;
+border-radius:8px;
+
+box-shadow:0 2px 5px rgba(0,0,0,0.2);
+
+}
+
+/* STATUS */
+
+.status{
+padding:4px 8px;
+border-radius:4px;
+color:white;
+}
+
+.pendente{background:gray;}
+.realizado{background:green;}
+.faltou{background:red;}
+.bloqueado{background:red;}
+.treinamento{background:purple;}
+
+/* MODAL */
+
+.modal{
+
+position:fixed;
+
+top:50%;
+left:50%;
+
+transform:translate(-50%,-50%);
+
+background:white;
+
+padding:20px;
+
+border-radius:10px;
+
+box-shadow:0 0 20px rgba(0,0,0,0.3);
+
+z-index:1000;
+
+}
+
+.calendario{
+
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:5px;
+
+}
+
+.dia{
+
+padding:10px;
+text-align:center;
+cursor:pointer;
+background:#eee;
+border-radius:5px;
+
+}
+
+.dia:hover{
+background:#ddd;
+}
+
+.hidden{
+display:none;
+}
+
+</style>
+
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+
+<div id="loginScreen">
+
+<div class="header-login">
+
+<img src="logo-panobianco.png">
+
+<h2>AGENDAMENTO AVALIAÇÃO FÍSICA</h2>
+
+<h3>VILA IMPÉRIO</h3>
+
+</div>
+
+<div class="login-container">
+
+<div class="login-box" onclick="loginAdmin()">
+ADMIN
+</div>
+
+<div class="login-box" onclick="loginRecepcao()">
+RECEPÇÃO
+</div>
+
+<div class="login-box" onclick="loginProfessor()">
+PROFESSOR
+</div>
+
+</div>
+
+</div>
+
+<!-- EVO LAYOUT -->
+
+<div id="app" class="layout hidden">
+
+<div class="sidebar">
+
+<div class="sidebar-header">
+
+<img src="logo-panobianco.png">
+
+<h3>PANOBIANCO</h3>
+
+<span>Vila Império</span>
+
+<div id="userLabel"></div>
+
+</div>
+
+<button onclick="abrirAgenda()">Agenda</button>
+
+<button id="btnAgendar" onclick="abrirCalendario()">Novo Agendamento</button>
+
+<button id="btnBloquearDia" onclick="bloquearDia()">Bloquear Dia</button>
+
+<button id="btnBloquearHorario" onclick="bloquearHorario()">Bloquear Horário</button>
+
+<button onclick="logout()">Sair</button>
+
+</div>
+
+<div class="content">
+
+<div id="agenda"></div>
+
+</div>
+
+</div>
+
+<!-- CALENDARIO -->
+
+<div id="modalCalendario" class="modal hidden">
+
+<button onclick="mesAnterior()">◀</button>
+
+<span id="mesAno"></span>
+
+<button onclick="mesProximo()">▶</button>
+
+<div id="calendario" class="calendario"></div>
+
+</div>
+
+<script>
+
+/* CONFIG */
+
+const horarios=[
+
+"06:30","06:50","07:50","08:10","08:30","08:50",
+"09:10","09:30",
+"16:00","16:20","16:40","17:00","17:20","17:40",
+"18:00","18:20","18:40",
+"19:20","19:40","21:00","21:20"
+
+];
+
+let agendamentos=
+JSON.parse(localStorage.getItem("agendamentos")||"[]");
+
+let usuarioTipo="";
+let usuarioNome="";
+
+let mes=new Date().getMonth();
+let ano=new Date().getFullYear();
+
+/* LOGIN */
+
+function loginAdmin(){
+
+let senha=prompt("Senha Admin:");
+
+if(senha==="696907"){
+
+usuarioTipo="admin";
+usuarioNome="ADMIN";
+entrar();
+
+}
+
+}
+
+function loginRecepcao(){
+
+let nome=prompt("Nome:");
+
+usuarioTipo="recepcao";
+usuarioNome=nome;
+entrar();
+
+}
+
+function loginProfessor(){
+
+usuarioTipo="professor";
+usuarioNome="PROFESSOR";
+entrar();
+
+}
+
+function entrar(){
+
+document.getElementById("loginScreen").classList.add("hidden");
+
+document.getElementById("app").classList.remove("hidden");
+
+document.getElementById("userLabel").innerText=usuarioNome;
+
+/* PERMISSOES */
+
+if(usuarioTipo==="professor"){
+
+document.getElementById("btnAgendar").style.display="none";
+document.getElementById("btnBloquearDia").style.display="none";
+document.getElementById("btnBloquearHorario").style.display="none";
+
+}
+
+renderAgenda();
+
+}
+
+function logout(){
+location.reload();
+}
+
+/* SALVAR */
+
+function salvar(){
+
+localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
+
+}
+
+/* AGENDA */
+
+function abrirAgenda(){
+renderAgenda();
+}
+
+function renderAgenda(){
+
+let div=document.getElementById("agenda");
+
+div.innerHTML="";
+
+agendamentos.sort((a,b)=>
+new Date(a.data+" "+a.hora)-
+new Date(b.data+" "+b.hora)
+);
+
+agendamentos.forEach(a=>{
+
+let card=document.createElement("div");
+
+card.className="card";
+
+card.innerHTML=`
+
+<b>${a.data} ${a.hora}</b><br>
+
+${a.nome || ""} (ID ${a.id || ""})<br>
+
+<span class="status ${a.status}">
+${a.status}
+</span><br>
+
+${usuarioTipo!=="professor"
+?`<button onclick="cancelar(${a.uid})">Cancelar</button>`:""}
+
+<button onclick="status(${a.uid},'realizado')">Realizado</button>
+
+<button onclick="status(${a.uid},'faltou')">Faltou</button>
+
+`;
+
+div.appendChild(card);
+
+});
+
+}
+
+/* CANCELAR */
+
+function cancelar(uid){
+
+if(!confirm("Cancelar agendamento?")) return;
+
+agendamentos=
+agendamentos.filter(a=>a.uid!==uid);
+
+salvar();
+
+renderAgenda();
+
+}
+
+/* STATUS */
+
+function status(uid,s){
+
+let a=agendamentos.find(x=>x.uid===uid);
+
+if(a){
+
+a.status=s;
+
+salvar();
+
+renderAgenda();
+
+}
+
+}
+
+/* CALENDARIO */
+
+function abrirCalendario(){
+
+document.getElementById("modalCalendario").classList.remove("hidden");
+
+renderCalendario();
+
+}
+
+function renderCalendario(){
+
+let cal=document.getElementById("calendario");
+
+cal.innerHTML="";
+
+document.getElementById("mesAno").innerText=
+(mes+1)+"/"+ano;
+
+let dias=new Date(ano,mes+1,0).getDate();
+
+for(let i=1;i<=dias;i++){
+
+let data=
+ano+"-"+String(mes+1).padStart(2,"0")
++"-"+String(i).padStart(2,"0");
+
+let ocupados=
+agendamentos.filter(a=>a.data===data);
+
+let d=document.createElement("div");
+
+d.className="dia";
+
+d.innerText=i;
+
+if(ocupados.length>=horarios.length){
+
+d.style.background="red";
+d.style.color="white";
+
+}
+
+d.onclick=()=>selecionarDia(data);
+
+cal.appendChild(d);
+
+}
+
+}
+
+function selecionarDia(data){
+
+let livres=
+horarios.filter(h=>
+!agendamentos.find(a=>a.data===data && a.hora===h)
+);
+
+let hora=prompt("Horários disponíveis:\n"+livres.join("\n"));
+
+if(!hora)return;
+
+let nome=prompt("Nome:");
+
+let id=prompt("ID:");
+
+let existente=agendamentos.find(a=>a.id===id);
+
+if(existente && existente.nome!==nome){
+
+alert("ID já pertence a "+existente.nome);
+
+return;
+
+}
+
+/* 3 MESES */
+
+let ultima=
+agendamentos
+.filter(a=>a.id===id && a.status==="realizado")
+.sort((a,b)=>new Date(b.data)-new Date(a.data))[0];
+
+if(ultima){
+
+let d=new Date(ultima.data);
+
+d.setMonth(d.getMonth()+3);
+
+if(new Date()<d){
+
+if(!confirm("Avaliação antes de 3 meses. Continuar?"))
+return;
+
+}
+
+}
+
+agendamentos.push({
+
+uid:Date.now(),
+
+data,
+
+hora,
+
+nome,
+
+id,
+
+status:"pendente"
+
+});
+
+salvar();
+
+renderAgenda();
+
+}
+
+/* BLOQUEIOS */
+
+function bloquearDia(){
+
+let data=prompt("Data YYYY-MM-DD");
+
+horarios.forEach(h=>{
+
+agendamentos.push({
+
+uid:Date.now()+h,
+
+data,
+
+hora:h,
+
+status:"bloqueado"
+
+});
+
+});
+
+salvar();
+
+renderAgenda();
+
+}
+
+function bloquearHorario(){
+
+let data=prompt("Data YYYY-MM-DD");
+
+let hora=prompt("Hora");
+
+let tipo=prompt("1 bloqueio normal\n2 treinamento");
+
+agendamentos.push({
+
+uid:Date.now(),
+
+data,
+
+hora,
+
+status:tipo==="2"?"treinamento":"bloqueado"
+
+});
+
+salvar();
+
+renderAgenda();
+
+}
+
+/* MES */
+
+function mesAnterior(){
+
+mes--;
+
+if(mes<0){mes=11;ano--;}
+
+renderCalendario();
+
+}
+
+function mesProximo(){
+
+mes++;
+
+if(mes>11){mes=0;ano++;}
+
+renderCalendario();
+
+}
+
+</script>
+
+</body>
+</html>
