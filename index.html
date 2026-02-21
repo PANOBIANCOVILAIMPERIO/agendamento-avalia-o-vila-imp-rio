@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agendamento Avaliação Física Vila Império</title>
+
+<style>
+
+:root{
+--cinza:#6c757d;
+--amarelo:#ffc107;
+--azul:#0d6efd;
+--verde:#198754;
+--vermelho:#dc3545;
+--roxo:#6f42c1;
+--bg:#f4f6f8;
+}
+
+body{
+font-family:Segoe UI,Arial;
+background:var(--bg);
+margin:0;
+}
+
+header{
+text-align:center;
+background:white;
+padding:20px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+header img{
+max-width:160px;
+}
+
+h1{margin:10px 0 0;}
+h2{margin:5px 0;color:#555;font-weight:normal;}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.menu{
+display:flex;
+justify-content:center;
+gap:30px;
+margin-top:40px;
+}
+
+.menu button{
+width:220px;
+height:140px;
+font-size:22px;
+border:none;
+border-radius:12px;
+background:white;
+box-shadow:0 4px 12px rgba(0,0,0,0.15);
+cursor:pointer;
+transition:.2s;
+}
+
+.menu button:hover{
+transform:translateY(-5px);
+background:#eef3f8;
+}
+
+.hidden{display:none;}
+
+input,select{
+padding:10px;
+font-size:16px;
+margin:5px;
+}
+
+button{
+padding:10px 15px;
+margin:5px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+.card{
+background:white;
+padding:15px;
+margin:10px 0;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.status{font-weight:bold;}
+.status.pendente{color:var(--cinza);}
+.status.mensagem{color:var(--amarelo);}
+.status.confirmado{color:var(--azul);}
+.status.realizado{color:var(--verde);}
+.status.faltou{color:var(--vermelho);}
+.status.bloqueado{color:var(--vermelho);}
+.status.treinamento{color:var(--roxo);}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+<img src="logo-panobianco.png">
+
+<h1>AGENDAMENTO AVALIAÇÃO FÍSICA</h1>
+<h2>VILA IMPÉRIO</h2>
+<h2 id="ano"></h2>
+
+</header>
+
+<div class="container">
+
+<div id="menu" class="menu">
+
+<button onclick="abrirLoginAdmin()">ADMIN</button>
+
+<button onclick="abrirLoginRecepcao()">RECEPÇÃO</button>
+
+<button onclick="entrarProfessor()">PROFESSORES</button>
+
+</div>
+
+<!-- LOGIN ADMIN -->
+
+<div id="loginAdmin" class="hidden">
+
+<h3>Senha Admin</h3>
+
+<input type="password" id="senhaAdmin">
+
+<button onclick="entrarAdmin()">Entrar</button>
+
+<button onclick="voltarMenu()">Voltar</button>
+
+</div>
+
+<!-- LOGIN RECEPÇÃO -->
+
+<div id="loginRecepcao" class="hidden">
+
+<h3>Login Recepção</h3>
+
+<input id="nomeRecepcao" placeholder="Nome">
+
+<input id="senhaRecepcao" type="password" placeholder="Senha">
+
+<button onclick="loginOuCriarRecepcao()">Entrar</button>
+
+<button onclick="voltarMenu()">Voltar</button>
+
+</div>
+
+<!-- LIBERAÇÃO ADMIN -->
+
+<div id="liberarRecepcao" class="hidden">
+
+<h3>Primeiro acesso detectado</h3>
+
+<p>Senha Admin para liberar:</p>
+
+<input type="password" id="senhaAdminLiberacao">
+
+<button onclick="confirmarLiberacaoRecepcao()">Liberar</button>
+
+</div>
+
+<!-- PAINEL -->
+
+<div id="painel" class="hidden">
+
+<h3 id="usuarioLogado"></h3>
+
+<button onclick="novoAgendamento()">Novo Agendamento</button>
+
+<button onclick="bloquearDia()">Bloquear Dia Inteiro</button>
+
+<button onclick="verUsuarios()" id="btnUsuarios" style="display:none;">Ver usuários recepção</button>
+
+<button onclick="voltarMenu()">Voltar</button>
+
+<div id="listaUsuarios"></div>
+
+<div id="agenda"></div>
+
+</div>
+
+<!-- NOVO AGENDAMENTO -->
+
+<div id="novo" class="hidden">
+
+<h3>Novo Agendamento</h3>
+
+<input id="nomeCliente" placeholder="Nome">
+
+<input id="idCliente" placeholder="ID até 10 dígitos">
+
+<br>
+
+Data:
+
+<input type="date" id="dataAg">
+
+<br>
+
+Horário:
+
+<select id="horaAg"></select>
+
+<br>
+
+<button onclick="confirmarAgendamento()">Confirmar</button>
+
+<button onclick="cancelarNovo()">Cancelar</button>
+
+</div>
+
+</div>
+
+<script>
+
+const SENHA_ADMIN="696907";
+
+let usuarioAtual="";
+let usuarioTipo="";
+
+let tempNome="";
+let tempSenha="";
+
+const horarios=[
+"06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30",
+"16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20",
+"18:40","19:20","19:40","21:00","21:20"
+];
+
+let agendamentos=JSON.parse(localStorage.getItem("agendamentos")||"[]");
+
+let usuariosRecepcao=JSON.parse(localStorage.getItem("usuariosRecepcao")||"[]");
+
+function salvar(){
+
+localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
+
+localStorage.setItem("usuariosRecepcao",JSON.stringify(usuariosRecepcao));
+
+}
+
+function atualizarAno(){
+
+document.getElementById("ano").innerText="Ano: "+new Date().getFullYear();
+
+}
+
+function hideAll(){
+
+document.querySelectorAll(".container > div").forEach(d=>d.classList.add("hidden"));
+
+}
+
+function voltarMenu(){
+
+hideAll();
+
+document.getElementById("menu").classList.remove("hidden");
+
+}
+
+function abrirLoginAdmin(){
+
+hideAll();
+
+document.getElementById("loginAdmin").classList.remove("hidden");
+
+}
+
+function abrirLoginRecepcao(){
+
+hideAll();
+
+document.getElementById("loginRecepcao").classList.remove("hidden");
+
+}
+
+function entrarAdmin(){
+
+if(document.getElementById("senhaAdmin").value===SENHA_ADMIN){
+
+usuarioAtual="Admin";
+
+usuarioTipo="admin";
+
+abrirPainel();
+
+}else alert("Senha incorreta");
+
+}
+
+function loginOuCriarRecepcao(){
+
+let nome=document.getElementById("nomeRecepcao").value;
+
+let senha=document.getElementById("senhaRecepcao").value;
+
+if(!nome||!senha) return alert("Digite nome e senha");
+
+let usuario=usuariosRecepcao.find(u=>u.nome===nome);
+
+if(usuario){
+
+if(usuario.senha===senha){
+
+usuarioAtual=nome;
+
+usuarioTipo="recepcao";
+
+abrirPainel();
+
+}else alert("Senha incorreta");
+
+}else{
+
+tempNome=nome;
+
+tempSenha=senha;
+
+hideAll();
+
+document.getElementById("liberarRecepcao").classList.remove("hidden");
+
+}
+
+}
+
+function confirmarLiberacaoRecepcao(){
+
+let senhaAdmin=document.getElementById("senhaAdminLiberacao").value;
+
+if(senhaAdmin!==SENHA_ADMIN){
+
+alert("Senha admin incorreta");
+
+return;
+
+}
+
+usuariosRecepcao.push({
+
+nome:tempNome,
+
+senha:tempSenha
+
+});
+
+salvar();
+
+alert("Recepcionista criado com sucesso");
+
+usuarioAtual=tempNome;
+
+usuarioTipo="recepcao";
+
+abrirPainel();
+
+}
+
+function entrarProfessor(){
+
+usuarioAtual="Professor";
+
+usuarioTipo="professor";
+
+abrirPainel();
+
+}
+
+function abrirPainel(){
+
+hideAll();
+
+document.getElementById("painel").classList.remove("hidden");
+
+document.getElementById("usuarioLogado").innerText="Logado como: "+usuarioAtual;
+
+if(usuarioTipo==="admin")
+
+document.getElementById("btnUsuarios").style.display="inline-block";
+
+renderAgenda();
+
+}
+
+function verUsuarios(){
+
+let div=document.getElementById("listaUsuarios");
+
+div.innerHTML="<h3>Usuários recepção:</h3>";
+
+usuariosRecepcao.forEach(u=>{
+
+div.innerHTML+=u.nome+" — senha: "+u.senha+"<br>";
+
+});
+
+}
+
+function novoAgendamento(){
+
+hideAll();
+
+document.getElementById("novo").classList.remove("hidden");
+
+popularHorarios();
+
+}
+
+function cancelarNovo(){
+
+abrirPainel();
+
+}
+
+function popularHorarios(){
+
+let select=document.getElementById("horaAg");
+
+select.innerHTML="";
+
+horarios.forEach(h=>{
+
+let option=document.createElement("option");
+
+option.value=h;
+
+option.innerText=h;
+
+select.appendChild(option);
+
+});
+
+}
+
+function confirmarAgendamento(){
+
+let nome=document.getElementById("nomeCliente").value;
+
+let id=document.getElementById("idCliente").value;
+
+let data=document.getElementById("dataAg").value;
+
+let hora=document.getElementById("horaAg").value;
+
+if(!nome||!id||!data||!hora)
+
+return alert("Preencha todos os campos");
+
+let conflito=agendamentos.find(a=>a.data===data && a.hora===hora);
+
+if(conflito)
+
+return alert("Horário já ocupado");
+
+agendamentos.push({
+
+nome,
+
+id,
+
+data,
+
+hora,
+
+status:"pendente",
+
+usuario:usuarioAtual
+
+});
+
+salvar();
+
+abrirPainel();
+
+}
+
+function renderAgenda(){
+
+let div=document.getElementById("agenda");
+
+div.innerHTML="";
+
+agendamentos.forEach(a=>{
+
+let card=document.createElement("div");
+
+card.className="card";
+
+card.innerHTML=`
+
+<b>${a.data} ${a.hora}</b> — ${a.nome}<br>
+
+<span class="status ${a.status}">${a.status}</span><br>
+
+Criado por: ${a.usuario}<br>
+
+<button onclick="atualizarStatus('${a.id}','mensagem')">Mensagem enviada</button>
+
+<button onclick="atualizarStatus('${a.id}','confirmado')">Presença confirmada</button>
+
+<button onclick="atualizarStatus('${a.id}','realizado')">Avaliação realizada</button>
+
+<button onclick="atualizarStatus('${a.id}','faltou')">Faltou</button>
+
+`;
+
+div.appendChild(card);
+
+});
+
+}
+
+function atualizarStatus(id,status){
+
+let a=agendamentos.find(x=>x.id===id);
+
+if(a){
+
+a.status=status;
+
+salvar();
+
+renderAgenda();
+
+}
+
+}
+
+function bloquearDia(){
+
+let data=prompt("Digite a data YYYY-MM-DD");
+
+if(!data)return;
+
+horarios.forEach(h=>{
+
+agendamentos.push({
+
+nome:"BLOQUEADO",
+
+id:"bloq"+Math.random(),
+
+data,
+
+hora:h,
+
+status:"bloqueado",
+
+usuario:usuarioAtual
+
+});
+
+});
+
+salvar();
+
+renderAgenda();
+
+}
+
+atualizarAno();
+
+</script>
+
+</body>
+</html>
