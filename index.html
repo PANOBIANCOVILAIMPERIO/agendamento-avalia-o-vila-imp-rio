@@ -9,18 +9,20 @@
 body{
 font-family:Arial;
 margin:0;
-background:#f4f6f8;
+background:#f0f2f5;
 }
 
+/* HEADER */
+
 header{
-background:#fff;
-padding:20px;
 text-align:center;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
+background:white;
+padding:20px;
+box-shadow:0 2px 5px rgba(0,0,0,0.2);
 }
 
 header.compacto{
-padding:8px;
+padding:5px;
 font-size:14px;
 }
 
@@ -31,6 +33,54 @@ max-width:140px;
 header.compacto img{
 max-width:60px;
 }
+
+/* LOGIN */
+
+.login-container{
+display:flex;
+justify-content:center;
+align-items:center;
+gap:40px;
+height:60vh;
+}
+
+.login-box{
+
+width:220px;
+height:220px;
+
+border:2px solid #ccc;
+
+border-radius:12px;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+font-size:20px;
+font-weight:bold;
+
+cursor:pointer;
+
+background:transparent;
+
+transition:0.3s;
+
+}
+
+.login-box:hover{
+
+background:#f5f5f5;
+
+border-color:#1e88e5;
+
+color:#1e88e5;
+
+transform:scale(1.05);
+
+}
+
+/* PAINEL */
 
 .container{
 padding:20px;
@@ -43,7 +93,7 @@ border:none;
 border-radius:6px;
 cursor:pointer;
 background:#1e88e5;
-color:#fff;
+color:white;
 }
 
 button:hover{
@@ -51,17 +101,19 @@ background:#1565c0;
 }
 
 .card{
-background:#fff;
+background:white;
 padding:15px;
 margin:10px 0;
 border-radius:8px;
-box-shadow:0 2px 4px rgba(0,0,0,0.1);
+box-shadow:0 2px 5px rgba(0,0,0,0.2);
 }
+
+/* STATUS */
 
 .status{
 padding:4px 8px;
 border-radius:4px;
-color:#fff;
+color:white;
 display:inline-block;
 margin-top:5px;
 }
@@ -74,26 +126,59 @@ margin-top:5px;
 .bloqueado{background:red;}
 .treinamento{background:purple;}
 
-.hidden{
-display:none;
+/* CALENDARIO MODAL */
+
+.modal{
+
+position:fixed;
+
+top:50%;
+left:50%;
+
+transform:translate(-50%,-50%);
+
+background:white;
+
+padding:20px;
+
+border-radius:12px;
+
+box-shadow:0 0 20px rgba(0,0,0,0.3);
+
+z-index:1000;
+
 }
 
 .calendario{
+
 display:grid;
 grid-template-columns:repeat(7,1fr);
 gap:5px;
+
 }
 
 .dia{
-background:#fff;
+
 padding:10px;
-text-align:center;
+
+background:white;
+
 cursor:pointer;
+
 border-radius:6px;
+
+text-align:center;
+
 }
 
 .dia:hover{
+
 background:#e3f2fd;
+
+}
+
+.hidden{
+display:none;
 }
 
 </style>
@@ -111,25 +196,29 @@ background:#e3f2fd;
 
 </header>
 
-<div class="container">
+<div id="home" class="login-container">
 
-<div id="home">
+<div class="login-box" onclick="loginAdmin()">
+ADMIN
+</div>
 
-<button onclick="loginAdmin()">Admin</button>
+<div class="login-box" onclick="loginRecepcao()">
+RECEPÇÃO
+</div>
 
-<button onclick="loginRecepcao()">Recepção</button>
-
-<button onclick="loginProfessor()">Professores</button>
+<div class="login-box" onclick="loginProfessor()">
+PROFESSORES
+</div>
 
 </div>
 
-<div id="painel" class="hidden">
+<div id="painel" class="container hidden">
 
 <button onclick="abrirAgendamento()">Novo Agendamento</button>
 
-<button onclick="abrirBloqueioDia()">Bloquear Dia</button>
+<button onclick="bloquearDia()">Bloquear Dia</button>
 
-<button onclick="abrirBloqueioHorario()">Bloquear Horário</button>
+<button onclick="bloquearHorario()">Bloquear Horário</button>
 
 <button onclick="logout()">Sair</button>
 
@@ -137,59 +226,57 @@ background:#e3f2fd;
 
 </div>
 
-<div id="calendarioBox" class="hidden">
+<div id="modalCalendario" class="modal hidden">
 
-<button onclick="voltarMes()">◀</button>
+<button onclick="mesAnterior()">◀</button>
 
 <span id="mesAno"></span>
 
-<button onclick="proximoMes()">▶</button>
+<button onclick="mesProximo()">▶</button>
 
-<div class="calendario" id="calendario"></div>
-
-</div>
+<div id="calendario" class="calendario"></div>
 
 </div>
 
 <script>
 
-let usuarioTipo="";
-let usuarioAtual="";
+/* CONFIG */
+
+const horarios=[
+
+"06:30","06:50",
+"07:50","08:10","08:30","08:50",
+"09:10","09:30",
+"16:00","16:20","16:40",
+"17:00","17:20","17:40",
+"18:00","18:20","18:40",
+"19:20","19:40",
+"21:00","21:20"
+
+];
 
 let agendamentos=
 JSON.parse(localStorage.getItem("agendamentos")||"[]");
 
-let mesAtual=new Date().getMonth();
-let anoAtual=new Date().getFullYear();
+let usuarioTipo="";
+let usuarioAtual="";
 
-document.getElementById("ano").innerText=
-"Ano: "+anoAtual;
+let mes=new Date().getMonth();
+let ano=new Date().getFullYear();
 
-function salvar(){
+document.getElementById("ano").innerText="Ano "+ano;
 
-localStorage.setItem("agendamentos",
-JSON.stringify(agendamentos));
-
-}
-
-function ativarHeaderCompacto(){
-
-document.getElementById("header")
-.classList.add("compacto");
-
-}
+/* LOGIN */
 
 function loginAdmin(){
 
-let senha=prompt("Senha Admin:");
+let senha=prompt("Senha admin:");
 
 if(senha==="696907"){
 
 usuarioTipo="admin";
-
 usuarioAtual="Admin";
-
-abrirPainel();
+entrar();
 
 }
 
@@ -199,35 +286,27 @@ function loginRecepcao(){
 
 let nome=prompt("Nome:");
 
-let senha=prompt("Senha:");
-
 usuarioTipo="recepcao";
-
 usuarioAtual=nome;
-
-abrirPainel();
+entrar();
 
 }
 
 function loginProfessor(){
 
 usuarioTipo="professor";
-
 usuarioAtual="Professor";
-
-abrirPainel();
+entrar();
 
 }
 
-function abrirPainel(){
+function entrar(){
 
-ativarHeaderCompacto();
+document.getElementById("header").classList.add("compacto");
 
-document.getElementById("home")
-.classList.add("hidden");
+document.getElementById("home").classList.add("hidden");
 
-document.getElementById("painel")
-.classList.remove("hidden");
+document.getElementById("painel").classList.remove("hidden");
 
 renderAgenda();
 
@@ -239,90 +318,20 @@ location.reload();
 
 }
 
-function renderAgenda(){
+/* SALVAR */
 
-let div=document.getElementById("agenda");
+function salvar(){
 
-div.innerHTML="";
-
-agendamentos.sort((a,b)=>{
-
-return new Date(a.data+" "+a.hora)
--
-new Date(b.data+" "+b.hora);
-
-});
-
-agendamentos.forEach(a=>{
-
-let card=document.createElement("div");
-
-card.className="card";
-
-card.innerHTML=`
-
-<b>${a.data} ${a.hora}</b><br>
-
-<strong>${a.nome}</strong>
-
-(ID: ${a.id})<br>
-
-<span class="status ${a.status}">
-${a.status}
-</span><br>
-
-Criado por: ${a.usuario}<br>
-
-${usuarioTipo!=="professor"
-?`<button onclick="cancelar('${a.uid}')">
-Cancelar</button>`:""}
-
-<button onclick="status('${a.uid}','realizado')">
-Avaliação realizada</button>
-
-<button onclick="status('${a.uid}','faltou')">
-Faltou</button>
-
-`;
-
-div.appendChild(card);
-
-});
+localStorage.setItem("agendamentos",
+JSON.stringify(agendamentos));
 
 }
 
-function cancelar(uid){
-
-if(!confirm("Cancelar agendamento?")) return;
-
-agendamentos=
-agendamentos.filter(a=>a.uid!==uid);
-
-salvar();
-
-renderAgenda();
-
-}
-
-function status(uid,s){
-
-let a=agendamentos.find(x=>x.uid===uid);
-
-if(a){
-
-a.status=s;
-
-salvar();
-
-renderAgenda();
-
-}
-
-}
+/* CALENDARIO */
 
 function abrirAgendamento(){
 
-document.getElementById("calendarioBox")
+document.getElementById("modalCalendario")
 .classList.remove("hidden");
 
 renderCalendario();
@@ -336,44 +345,113 @@ let cal=document.getElementById("calendario");
 cal.innerHTML="";
 
 document.getElementById("mesAno").innerText=
-mesAtual+1+"/"+anoAtual;
+(mes+1)+"/"+ano;
 
-let dias=
-new Date(anoAtual,mesAtual+1,0).getDate();
+let dias=new Date(ano,mes+1,0).getDate();
 
 for(let i=1;i<=dias;i++){
 
-let d=document.createElement("div");
-
-d.className="dia";
-
-d.innerText=i;
-
-d.onclick=()=>selecionarDia(i);
-
-cal.appendChild(d);
-
-}
-
-}
-
-function selecionarDia(d){
-
 let data=
-anoAtual+"-"+(mesAtual+1)+"-"+d;
+ano+"-"+String(mes+1).padStart(2,"0")
++"-"+String(i).padStart(2,"0");
 
-let hora=prompt("Hora:");
+let ocupados=
+agendamentos.filter(a=>a.data===data);
+
+let div=document.createElement("div");
+
+div.className="dia";
+
+div.innerText=i;
+
+if(ocupados.length>=horarios.length){
+
+div.style.background="red";
+div.style.color="white";
+
+}
+
+div.onclick=()=>selecionarDia(data);
+
+cal.appendChild(div);
+
+}
+
+}
+
+function mesAnterior(){
+
+mes--;
+
+if(mes<0){mes=11;ano--;}
+
+renderCalendario();
+
+}
+
+function mesProximo(){
+
+mes++;
+
+if(mes>11){mes=0;ano++;}
+
+renderCalendario();
+
+}
+
+/* SELECIONAR DIA */
+
+function selecionarDia(data){
+
+let livres=
+horarios.filter(h=>
+!agendamentos.find(a=>
+a.data===data && a.hora===h
+));
+
+let h=prompt(
+"Horários disponíveis:\n"+
+livres.join("\n")
+);
+
+if(!h)return;
 
 let nome=prompt("Nome:");
 
 let id=prompt("ID:");
 
-if(agendamentos.find(a=>a.id===id
-&& a.nome!==nome)){
+let existente=
+agendamentos.find(a=>a.id===id);
 
-alert("ID já pertence a outro aluno");
+if(existente && existente.nome!==nome){
 
+alert("ID já pertence a "+existente.nome);
 return;
+
+}
+
+/* VERIFICAR 3 MESES */
+
+let ultima=
+agendamentos
+.filter(a=>a.id===id && a.status==="realizado")
+.sort((a,b)=>
+new Date(b.data)-new Date(a.data)
+)[0];
+
+if(ultima){
+
+let d=new Date(ultima.data);
+
+d.setMonth(d.getMonth()+3);
+
+if(new Date()<d){
+
+if(!confirm(
+"Avaliação antes de 3 meses.\nContinuar?"
+))return;
+
+}
 
 }
 
@@ -383,7 +461,7 @@ uid:Date.now(),
 
 data,
 
-hora,
+hora:h,
 
 nome,
 
@@ -401,35 +479,143 @@ renderAgenda();
 
 }
 
-function voltarMes(){
+/* BLOQUEIOS */
 
-mesAtual--;
+function bloquearDia(){
 
-if(mesAtual<0){
+let data=prompt("Data YYYY-MM-DD");
 
-mesAtual=11;
+horarios.forEach(h=>{
 
-anoAtual--;
+agendamentos.push({
+
+uid:Date.now()+h,
+
+data,
+
+hora:h,
+
+status:"bloqueado",
+
+usuario:usuarioAtual
+
+});
+
+});
+
+salvar();
+
+renderAgenda();
 
 }
 
-renderCalendario();
+function bloquearHorario(){
+
+let data=prompt("Data YYYY-MM-DD");
+
+let hora=prompt("Hora");
+
+let tipo=prompt("1 bloqueio\n2 treinamento");
+
+agendamentos.push({
+
+uid:Date.now(),
+
+data,
+
+hora,
+
+status:
+tipo==="2"?"treinamento":"bloqueado",
+
+usuario:usuarioAtual
+
+});
+
+salvar();
+
+renderAgenda();
 
 }
 
-function proximoMes(){
+/* AGENDA */
 
-mesAtual++;
+function renderAgenda(){
 
-if(mesAtual>11){
+let div=document.getElementById("agenda");
 
-mesAtual=0;
+div.innerHTML="";
 
-anoAtual++;
+agendamentos
+.sort((a,b)=>
+new Date(a.data+" "+a.hora)
+-
+new Date(b.data+" "+b.hora)
+)
+.forEach(a=>{
+
+let card=document.createElement("div");
+
+card.className="card";
+
+card.innerHTML=`
+
+<b>${a.data} ${a.hora}</b><br>
+
+${a.nome} (ID ${a.id})<br>
+
+<span class="status ${a.status}">
+${a.status}
+</span><br>
+
+${usuarioTipo!=="professor"
+?`<button onclick="cancelar(${a.uid})">
+Cancelar
+</button>`:""}
+
+<button onclick="status(${a.uid},'realizado')">
+Realizado
+</button>
+
+<button onclick="status(${a.uid},'faltou')">
+Faltou
+</button>
+
+`;
+
+div.appendChild(card);
+
+});
 
 }
 
-renderCalendario();
+function cancelar(uid){
+
+if(!confirm("Cancelar?"))return;
+
+agendamentos=
+agendamentos.filter(a=>a.uid!==uid);
+
+salvar();
+
+renderAgenda();
+
+}
+
+function status(uid,s){
+
+let a=
+agendamentos.find(x=>x.uid===uid);
+
+if(a){
+
+a.status=s;
+
+salvar();
+
+renderAgenda();
+
+}
 
 }
 
