@@ -80,8 +80,6 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 
 <script>
 
-/* ================= ESTADO ================= */
-
 let state={
 tipo:null,
 nome:null,
@@ -97,7 +95,7 @@ let recepcionistas=JSON.parse(localStorage.getItem("recepcionistas")||"[]");
 
 document.getElementById("anoAtual").innerText=new Date().getFullYear();
 
-/* ================= LIMPEZA AUTOMÁTICA 30 DIAS ================= */
+/* ===== LIMPEZA 30 DIAS ===== */
 
 function limparAntigos(){
 let hoje=new Date();
@@ -117,9 +115,7 @@ return diff<=30;
 salvar();
 }
 
-limparAntigos();
-
-/* ================= LOGIN ================= */
+/* ===== LOGIN ===== */
 
 function loginAdmin(){
 if(prompt("Senha Admin:")!=="696907") return;
@@ -139,6 +135,7 @@ state.tipo="professor"; state.nome="PROFESSOR"; entrar();
 }
 
 function entrar(){
+limparAntigos();
 document.getElementById("loginScreen").classList.add("hidden");
 document.getElementById("app").classList.remove("hidden");
 document.getElementById("usuario").innerText=state.nome;
@@ -148,7 +145,7 @@ renderCalendario();
 
 function logout(){location.reload();}
 
-/* ================= MENU ================= */
+/* ===== MENU ===== */
 
 function renderMenu(){
 let m=document.getElementById("menu");
@@ -168,20 +165,20 @@ m.innerHTML+=`<button onclick="abrirRecep()">👥 Recepcionistas</button>`;
 }
 }
 
-/* ================= BUSCA POR ID ================= */
+/* ===== BUSCA ID ===== */
 
 function buscarID(){
 let main=document.getElementById("main");
 main.innerHTML=`
 <h2>Buscar por ID</h2>
-<input id="buscaID" placeholder="Digite o ID">
+<input id="campoBuscaID" placeholder="Digite o ID">
 <button onclick="executarBusca()">Buscar</button>
 <button onclick="renderCalendario()">⬅ Voltar</button>
 <div id="resultadoBusca"></div>`;
 }
 
 function executarBusca(){
-let id=document.getElementById("buscaID").value.trim();
+let id=document.getElementById("campoBuscaID").value.trim();
 let div=document.getElementById("resultadoBusca");
 div.innerHTML="";
 
@@ -203,13 +200,20 @@ Status: ${a.status}
 });
 }
 
-/* ================= RESTANTE DO SISTEMA ================= */
-/* (Calendário, Agendamento, Status, Bloqueios etc continuam iguais ao anterior) */
+/* ===== UTIL ===== */
 
 function salvar(){
 localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
 localStorage.setItem("bloqueios",JSON.stringify(bloqueios));
 localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+}
+
+function formatar(a,m,d){
+return a+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+}
+
+function nomeMes(m){
+return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];
 }
 
 </script>
