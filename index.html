@@ -21,7 +21,7 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 .login-box:hover{border-color:#1e88e5;color:#1e88e5}
 
 .layout{display:flex;height:100vh}
-.sidebar{width:250px;background:#1f2937;color:white;display:flex;flex-direction:column}
+.sidebar{width:260px;background:#1f2937;color:white;display:flex;flex-direction:column}
 .sidebar-header{text-align:center;padding:20px;border-bottom:1px solid #333}
 .sidebar button{background:none;border:none;color:white;padding:12px;text-align:left}
 .sidebar button:hover{background:#374151}
@@ -37,34 +37,13 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 .faltou{background:#dc2626}
 
 .calendario-header{display:flex;justify-content:space-between;align-items:center}
-.calendario-grid{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-gap:5px;
-margin-top:15px;
-}
-.dia{
-padding:10px;
-background:white;
-border:1px solid #ccc;
-text-align:center;
-cursor:pointer;
-}
+.calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:15px}
+.dia{padding:10px;background:white;border:1px solid #ccc;text-align:center;cursor:pointer}
 .dia.lotado{background:#fecaca}
 .dia.bloqueado{background:#dc2626;color:white}
 
-.grid-horarios{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:8px;
-margin-top:15px;
-}
-.horario-btn{
-padding:10px;
-border:1px solid #ccc;
-border-radius:6px;
-background:white;
-}
+.grid-horarios{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:15px}
+.horario-btn{padding:10px;border:1px solid #ccc;border-radius:6px;background:white}
 .horario-btn.ocupado{background:#ddd}
 .horario-btn.bloqueado{background:#dc2626;color:white}
 .horario-btn.treinamento{background:#7c3aed;color:white}
@@ -101,8 +80,6 @@ background:white;
 
 <script>
 
-/* ================== ESTADO ================== */
-
 let usuarioTipo=null;
 let usuarioNome=null;
 
@@ -112,7 +89,7 @@ let bloqueios=JSON.parse(localStorage.getItem("bloqueios")||"[]");
 
 document.getElementById("anoAtual").innerText=new Date().getFullYear();
 
-/* ================== LOGIN ================== */
+/* LOGIN */
 
 function loginAdmin(){
 let senha=prompt("Senha Admin:");
@@ -142,7 +119,7 @@ entrar();
 
 function logout(){location.reload();}
 
-/* ================== ENTRAR ================== */
+/* ENTRAR */
 
 function entrar(){
 limparAntigos();
@@ -153,22 +130,16 @@ renderMenu();
 abrirCalendario();
 }
 
-/* ================== LIMPEZA 30 DIAS ================== */
+/* LIMPEZA 30 DIAS */
 
 function limparAntigos(){
 let hoje=new Date();
-agendamentos=agendamentos.filter(a=>{
-let d=new Date(a.data);
-return ((hoje-d)/(1000*60*60*24))<=30;
-});
-bloqueios=bloqueios.filter(b=>{
-let d=new Date(b.data);
-return ((hoje-d)/(1000*60*60*24))<=30;
-});
+agendamentos=agendamentos.filter(a=>((hoje-new Date(a.data))/(1000*60*60*24))<=30);
+bloqueios=bloqueios.filter(b=>((hoje-new Date(b.data))/(1000*60*60*24))<=30);
 salvar();
 }
 
-/* ================== MENU ================== */
+/* MENU */
 
 function renderMenu(){
 let m=document.getElementById("menuLateral");
@@ -177,7 +148,7 @@ m.innerHTML+=`<button onclick="abrirCalendario()">📆 Calendário</button>`;
 m.innerHTML+=`<button onclick="mostrarHoje()">📅 Hoje</button>`;
 
 if(usuarioTipo!=="professor"){
-m.innerHTML+=`<button onclick="abrirCalendario(true)">➕ Novo Agendamento</button>`;
+m.innerHTML+=`<button onclick="abrirCalendario(true)">➕ Novo</button>`;
 m.innerHTML+=`<button onclick="modoBloqueioDia()">🚫 Bloquear Dia</button>`;
 m.innerHTML+=`<button onclick="modoBloqueioHorario()">⛔ Bloquear Horário</button>`;
 }
@@ -187,7 +158,7 @@ m.innerHTML+=`<button onclick="cadastroRecep()">👥 Recepcionistas</button>`;
 }
 }
 
-/* ================== CALENDÁRIO ================== */
+/* CALENDÁRIO */
 
 let mesAtual=new Date().getMonth();
 let anoAtual=new Date().getFullYear();
@@ -240,9 +211,8 @@ let div=document.createElement("div");
 div.className="dia";
 div.innerText=d;
 
-if(bloqueios.find(b=>b.data===data&&b.tipo==="dia")){
-div.classList.add("bloqueado");
-}
+let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
+if(bloqueioDia)div.classList.add("bloqueado");
 
 let ocupados=agendamentos.filter(a=>a.data===data).length;
 if(ocupados>=21)div.classList.add("lotado");
@@ -253,29 +223,13 @@ grid.appendChild(div);
 }
 }
 
-function mesAnterior(){
-mesAtual--;
-if(mesAtual<0){mesAtual=11;anoAtual--;}
-renderCalendario();
-}
-function mesSeguinte(){
-mesAtual++;
-if(mesAtual>11){mesAtual=0;anoAtual++;}
-renderCalendario();
-}
+function mesAnterior(){mesAtual--;if(mesAtual<0){mesAtual=11;anoAtual--;}renderCalendario();}
+function mesSeguinte(){mesAtual++;if(mesAtual>11){mesAtual=0;anoAtual++;}renderCalendario();}
+function nomeMes(m){return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];}
 
-function nomeMes(m){
-return ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho",
-"Agosto","Setembro","Outubro","Novembro","Dezembro"][m];
-}
+/* DIA */
 
-/* ================== DIA ================== */
-
-const horarios=[
-"06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30",
-"16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40",
-"19:20","19:40","21:00","21:20"
-];
+const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
 
 function clicarDia(data){
 
@@ -287,9 +241,19 @@ return;
 }
 
 let area=document.getElementById("areaPrincipal");
+
 area.innerHTML=`<h2>${data}</h2>
 <button onclick="renderCalendario()">⬅ Voltar</button>
-<div class="grid-horarios" id="gridHor"></div>`;
+<div id="adminDesbloqueio"></div>
+<div class="grid-horarios" id="gridHor"></div>
+<div id="listaDia"></div>
+`;
+
+let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
+if(bloqueioDia&&usuarioTipo==="admin"){
+document.getElementById("adminDesbloqueio").innerHTML=
+`<button onclick="desbloquearDia('${data}')">🔓 Desbloquear Dia</button>`;
+}
 
 let grid=document.getElementById("gridHor");
 
@@ -301,13 +265,12 @@ btn.innerText=h;
 let ocupado=agendamentos.find(a=>a.data===data&&a.horario===h);
 let bloqueado=bloqueios.find(b=>b.data===data&&b.horario===h);
 
-if(ocupado){
-btn.classList.add("ocupado");
-btn.disabled=true;
-}
+if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
 if(bloqueado){
 btn.classList.add(bloqueado.motivo==="treinamento"?"treinamento":"bloqueado");
-btn.disabled=true;
+if(usuarioTipo==="admin"){
+btn.onclick=()=>desbloquearHorario(data,h);
+}else btn.disabled=true;
 }
 
 if(modoBloqueioHorarioAtivo&&!ocupado&&!bloqueado){
@@ -325,9 +288,23 @@ btn.onclick=()=>confirmarAgendamento(data,h);
 
 grid.appendChild(btn);
 });
+
+mostrarAgendamentosDoDia(data);
 }
 
-/* ================== AGENDAMENTO ================== */
+function desbloquearDia(data){
+bloqueios=bloqueios.filter(b=>!(b.data===data&&b.tipo==="dia"));
+salvar();
+renderCalendario();
+}
+
+function desbloquearHorario(data,h){
+bloqueios=bloqueios.filter(b=>!(b.data===data&&b.horario===h));
+salvar();
+clicarDia(data);
+}
+
+/* AGENDAMENTO */
 
 function confirmarAgendamento(data,horario){
 
@@ -336,47 +313,45 @@ let id=prompt("ID numérico até 10 dígitos:");
 
 if(!/^[0-9]{1,10}$/.test(id)){alert("ID inválido");return;}
 
-if(agendamentos.find(a=>a.data===data&&a.horario===horario)){
-alert("Horário já ocupado");
+let existente=agendamentos.find(a=>a.id===id);
+if(existente&&existente.nome!==nome){
+alert("Este ID já está vinculado a outro nome.");
 return;
 }
 
-agendamentos.push({
-nome,id,data,horario,
-status:"pendente",
-criadoPor:usuarioNome
-});
-
+agendamentos.push({nome,id,data,horario,status:"pendente",criadoPor:usuarioNome});
 salvar();
+
+modoAgendamento=false;
 clicarDia(data);
 }
 
-/* ================== HOJE ================== */
+/* LISTA DO DIA */
 
-function mostrarHoje(){
-let hoje=formatarISO(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
-let lista=agendamentos.filter(a=>a.data===hoje);
-renderLista(lista,"Hoje");
-}
+function mostrarAgendamentosDoDia(data){
 
-/* ================== LISTA ================== */
-
-function renderLista(lista,titulo){
-let area=document.getElementById("areaPrincipal");
-area.innerHTML=`<h2>${titulo}</h2><button onclick="abrirCalendario()">⬅ Voltar</button><br><br>`;
+let lista=agendamentos.filter(a=>a.data===data);
 lista.sort((a,b)=>a.horario.localeCompare(b.horario));
 
+let div=document.getElementById("listaDia");
+div.innerHTML="<h3>Agendamentos:</h3>";
+
 lista.forEach(a=>{
-area.innerHTML+=`
+div.innerHTML+=`
 <div class="card">
-${a.data} - ${a.horario}<br>
-${a.nome} (ID: ${a.id})<br>
-<span class="status ${a.status}">${a.status}</span>
+${a.horario} - ${a.nome} (ID: ${a.id})
 </div>`;
 });
 }
 
-/* ================== RECEPCIONISTAS ================== */
+/* HOJE */
+
+function mostrarHoje(){
+let hoje=formatarISO(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+mostrarAgendamentosDoDia(hoje);
+}
+
+/* RECEPCIONISTAS */
 
 function cadastroRecep(){
 let area=document.getElementById("areaPrincipal");
@@ -387,7 +362,12 @@ area.innerHTML=`<h2>Recepcionistas</h2>
 <button onclick="abrirCalendario()">⬅ Voltar</button><br><br>`;
 
 recepcionistas.forEach(r=>{
-area.innerHTML+=`<div class="card">${r.nome}</div>`;
+area.innerHTML+=`
+<div class="card">
+<b>${r.nome}</b><br>
+Senha: ${r.senha}<br>
+<button onclick="excluirRecep('${r.nome}')">Excluir</button>
+</div>`;
 });
 }
 
@@ -400,7 +380,13 @@ localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
 cadastroRecep();
 }
 
-/* ================== UTIL ================== */
+function excluirRecep(nome){
+recepcionistas=recepcionistas.filter(r=>r.nome!==nome);
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+cadastroRecep();
+}
+
+/* UTIL */
 
 function formatarISO(ano,mes,dia){
 let m=String(mes+1).padStart(2,"0");
