@@ -32,7 +32,11 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 .calendario-header{display:flex;justify-content:space-between;align-items:center}
 .calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
 .dia{padding:10px;text-align:center;border:1px solid #ccc;cursor:pointer}
-.dia.bloqueado{background:#dc2626;color:white}
+
+.dia.bloqueado{
+background:#dc2626 !important;
+color:white !important;
+}
 
 .grid-horarios{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:15px}
 .horario-btn{padding:10px;border:1px solid #ccc;border-radius:6px;background:white}
@@ -43,7 +47,6 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
 <div class="header-login">
 <img src="logo-panobianco.png">
@@ -57,7 +60,6 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 </div>
 </div>
 
-<!-- APP -->
 <div id="app" class="layout hidden">
 <div class="sidebar">
 <div class="sidebar-header">
@@ -112,8 +114,6 @@ entrar();
 }
 
 function logout(){location.reload();}
-
-/* ENTRAR */
 
 function entrar(){
 document.getElementById("loginScreen").classList.add("hidden");
@@ -217,8 +217,7 @@ let div=document.createElement("div");
 div.className="dia";
 div.innerText=d;
 
-// visual
-if(diaSemana>=2 && diaSemana<=5){
+if(diaSemana===2 || diaSemana===3 || diaSemana===4 || diaSemana===5){
 div.style.background="#e6f4ea";
 div.onclick=()=>clicarDia(data);
 }else{
@@ -227,17 +226,11 @@ div.style.opacity="0.5";
 }
 
 let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
-if(bloqueioDia){
-div.classList.add("bloqueado");
-}
+if(bloqueioDia)div.classList.add("bloqueado");
 
 grid.appendChild(div);
 }
 }
-
-function mesAnterior(){mesAtual--;if(mesAtual<0){mesAtual=11;anoAtual--;}renderCalendario();}
-function mesSeguinte(){mesAtual++;if(mesAtual>11){mesAtual=0;anoAtual++;}renderCalendario();}
-function nomeMes(m){return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];}
 
 /* DIA */
 
@@ -265,6 +258,7 @@ area.innerHTML=`<h2>${data}</h2>
 <button onclick="renderCalendario()">⬅ Voltar</button>
 <div id="adminDesbloqueio"></div>
 <div class="grid-horarios" id="gridHor"></div>
+<div id="listaDia"></div>
 `;
 
 if(bloqueioDia && usuarioTipo==="admin"){
@@ -305,6 +299,26 @@ clicarDia(data);
 }
 
 grid.appendChild(btn);
+});
+
+mostrarAgendamentosDoDia(data);
+}
+
+function mostrarAgendamentosDoDia(data){
+
+let lista=agendamentos
+.filter(a=>a.data===data)
+.sort((a,b)=>a.horario.localeCompare(b.horario));
+
+let div=document.getElementById("listaDia");
+div.innerHTML="<h3>Agendamentos:</h3>";
+
+lista.forEach(a=>{
+div.innerHTML+=`
+<div class="card">
+${a.horario} - ${a.nome} (ID: ${a.id})
+</div>
+`;
 });
 }
 
@@ -399,6 +413,10 @@ function salvar(){
 localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
 localStorage.setItem("bloqueios",JSON.stringify(bloqueios));
 }
+
+function mesAnterior(){mesAtual--;if(mesAtual<0){mesAtual=11;anoAtual--;}renderCalendario();}
+function mesSeguinte(){mesAtual++;if(mesAtual>11){mesAtual=0;anoAtual++;}renderCalendario();}
+function nomeMes(m){return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];}
 
 </script>
 </body>
