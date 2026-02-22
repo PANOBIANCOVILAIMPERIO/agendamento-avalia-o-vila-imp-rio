@@ -131,7 +131,7 @@ function renderMenu(){
 let m=document.getElementById("menu");
 m.innerHTML="";
 
-m.innerHTML+=`<button onclick="renderCalendario()">📆 Calendário</button>`;
+m.innerHTML+=`<button onclick="state.modo=null;renderCalendario()">📆 Calendário</button>`;
 
 if(state.tipo!=="professor"){
 m.innerHTML+=`<button onclick="state.modo='agendar';renderCalendario()">➕ Agendar</button>`;
@@ -148,7 +148,7 @@ m.innerHTML+=`<button onclick="abrirRecep()">👥 Recepcionistas</button>`;
 /* CALENDÁRIO */
 
 function renderCalendario(){
-state.modo=null;
+
 let main=document.getElementById("main");
 
 main.innerHTML=`
@@ -176,7 +176,7 @@ div.className="dia";
 
 if(diaSemana>=1 && diaSemana<=4){
 div.classList.add("liberado");
-div.onclick=()=>abrirDia(data);
+div.onclick=()=>clicarDia(data);
 }else div.classList.add("inativo");
 
 if(bloqueios.find(b=>b.data===data && b.tipo==="dia")){
@@ -188,17 +188,30 @@ grid.appendChild(div);
 }
 }
 
-function mesAnt(){state.mes--; if(state.mes<0){state.mes=11;state.ano--;} renderCalendario();}
-function mesProx(){state.mes++; if(state.mes>11){state.mes=0;state.ano++;} renderCalendario();}
+function clicarDia(data){
 
-/* DIA */
+if(state.modo==="bloqDia"){
+let existe=bloqueios.find(b=>b.data===data && b.tipo==="dia");
+if(!existe){
+bloqueios.push({data,tipo:"dia"});
+}else if(state.tipo==="admin"){
+bloqueios=bloqueios.filter(b=>!(b.data===data && b.tipo==="dia"));
+}
+salvar();
+renderCalendario();
+return;
+}
+
+abrirDia(data);
+}
 
 function abrirDia(data){
 state.dataAtual=data;
 
 let bloqueioDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
 if(bloqueioDia && state.tipo!=="admin"){
-alert("Dia bloqueado"); return;
+alert("Dia bloqueado");
+return;
 }
 
 let main=document.getElementById("main");
@@ -218,10 +231,27 @@ let ocupado=agendamentos.find(a=>a.data===data && a.horario===h);
 let bloqueado=bloqueios.find(b=>b.data===data && b.horario===h);
 
 if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
-if(bloqueado){btn.classList.add("bloqueado");}
 
-if(!ocupado && !bloqueado && state.tipo!=="professor"){
+if(bloqueado){
+btn.classList.add("bloqueado");
+if(state.tipo==="admin"){
+btn.onclick=()=>{
+bloqueios=bloqueios.filter(b=>!(b.data===data && b.horario===h));
+salvar();
+abrirDia(data);
+};
+}
+}else{
+if(state.modo==="agendar" && !ocupado){
 btn.onclick=()=>agendar(data,h);
+}
+if(state.modo==="bloqHora" && !ocupado){
+btn.onclick=()=>{
+bloqueios.push({data,horario:h,tipo:"hora"});
+salvar();
+abrirDia(data);
+};
+}
 }
 
 grid.appendChild(btn);
@@ -230,7 +260,7 @@ grid.appendChild(btn);
 mostrarLista(data);
 }
 
-/* AGENDAR */
+/* RESTANTE DO SISTEMA CONTINUA IGUAL (AGENDAMENTO, STATUS, BUSCA, RECEPÇÃO, UTIL) */
 
 function agendar(data,horario){
 let nome=prompt("Nome do aluno:");
@@ -242,8 +272,6 @@ agendamentos.push({nome,id,data,horario,status:"pendente",criadoPor:state.nome})
 salvar();
 abrirDia(data);
 }
-
-/* LISTA */
 
 function mostrarLista(data){
 let lista=agendamentos
@@ -270,13 +298,10 @@ ${state.tipo!=="professor"?
 });
 }
 
-/* STATUS */
-
 function msg(i){agendamentos[i].status="mensagem";salvar();mostrarLista(state.dataAtual);}
 function conf(i){agendamentos[i].status="confirmado";salvar();mostrarLista(state.dataAtual);}
 function real(i){agendamentos[i].status="realizado";salvar();mostrarLista(state.dataAtual);}
 function falt(i){agendamentos[i].status="faltou";salvar();mostrarLista(state.dataAtual);}
-
 function cancel(i){
 if(state.tipo==="admin" || agendamentos[i].criadoPor===state.nome){
 agendamentos.splice(i,1);
@@ -285,12 +310,9 @@ mostrarLista(state.dataAtual);
 }else alert("Somente quem agendou ou admin pode cancelar.");
 }
 
-/* BUSCA */
-
 function abrirBusca(){
 let main=document.getElementById("main");
-main.innerHTML=`
-<h2>Buscar por ID</h2>
+main.innerHTML=`<h2>Buscar por ID</h2>
 <input id="buscaID" placeholder="Digite o ID">
 <button onclick="buscarID()">Buscar</button>
 <button onclick="renderCalendario()">⬅ Voltar</button>
@@ -317,12 +339,9 @@ Status: ${a.status}
 });
 }
 
-/* RECEPCIONISTAS */
-
 function abrirRecep(){
 let main=document.getElementById("main");
-main.innerHTML=`
-<h2>Recepcionistas</h2>
+main.innerHTML=`<h2>Recepcionistas</h2>
 <input id="nomeR" placeholder="Nome único">
 <input id="senhaR" placeholder="Senha">
 <button onclick="addRecep()">Cadastrar</button>
@@ -335,8 +354,7 @@ function renderListaR(){
 let div=document.getElementById("listaR");
 div.innerHTML="";
 recepcionistas.forEach((r,i)=>{
-div.innerHTML+=`
-<div class="card">
+div.innerHTML+=`<div class="card">
 <b>${r.nome}</b><br>
 Senha: ${r.senha}<br>
 <button onclick="removerRecep(${i})">Excluir</button>
@@ -359,8 +377,6 @@ recepcionistas.splice(i,1);
 localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
 renderListaR();
 }
-
-/* UTIL */
 
 function salvar(){
 localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
