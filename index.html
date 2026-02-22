@@ -80,7 +80,7 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 
 <script>
 
-let state={usuarioTipo:null,usuarioNome:null,modo:null,mes:new Date().getMonth(),ano:new Date().getFullYear()}
+let state={usuarioTipo:null,usuarioNome:null,modo:null,mes:new Date().getMonth(),ano:new Date().getFullYear(),dataAtual:null}
 let recepcionistas=JSON.parse(localStorage.getItem("recepcionistas")||"[]");
 let agendamentos=JSON.parse(localStorage.getItem("agendamentos")||"[]");
 let bloqueios=JSON.parse(localStorage.getItem("bloqueios")||"[]");
@@ -201,7 +201,132 @@ grid.appendChild(div);
 }
 }
 
-/* RESTANTE DO CÓDIGO (AGENDAMENTO, STATUS, BLOQUEIOS) PERMANECE IGUAL AO ANTERIOR, MAS JÁ COM A CORREÇÃO PARA PERMANECER NA TELA DO DIA */
+/* DIA */
+
+const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
+
+function clicarDia(data){
+state.dataAtual=data;
+
+let bloqueadoDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
+
+if(state.modo==="bloqDia"){
+if(!bloqueadoDia)bloqueios.push({data,tipo:"dia"});
+salvar();renderCalendario();return;
+}
+
+if(bloqueadoDia && state.usuarioTipo!=="admin"){
+alert("Dia bloqueado");return;
+}
+
+let main=document.getElementById("main");
+main.innerHTML=`<h2>${data}</h2>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="horarios" class="grid-horarios"></div>
+<div id="lista"></div>`;
+
+let grid=document.getElementById("horarios");
+
+horarios.forEach(h=>{
+let btn=document.createElement("button");
+btn.className="horario-btn";
+btn.innerText=h;
+
+let ocupado=agendamentos.find(a=>a.data===data&&a.horario===h);
+let bloqueado=bloqueios.find(b=>b.data===data&&b.horario===h);
+
+if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
+if(bloqueado){btn.classList.add("bloqueado");}
+
+if(state.modo==="agendar"&&!ocupado&&!bloqueado)
+btn.onclick=()=>agendar(data,h);
+
+grid.appendChild(btn);
+});
+
+mostrarLista(data);
+}
+
+/* AGENDAMENTO */
+
+function agendar(data,horario){
+let nome=prompt("Nome do aluno:");
+let id=prompt("ID numérico até 10 dígitos:");
+if(!/^[0-9]{1,10}$/.test(id))return alert("ID inválido");
+let existe=agendamentos.find(a=>a.id===id);
+if(existe&&existe.nome!==nome)return alert("ID já vinculado a outro nome");
+agendamentos.push({nome,id,data,horario,status:"pendente",criadoPor:state.usuarioNome});
+salvar();clicarDia(data);
+}
+
+/* LISTA */
+
+function mostrarLista(data){
+let lista=agendamentos
+.map((a,i)=>({...a,idx:i}))
+.filter(a=>a.data===data)
+.sort((a,b)=>a.horario.localeCompare(b.horario));
+
+let div=document.getElementById("lista");
+div.innerHTML="<h3>Agendamentos:</h3>";
+
+lista.forEach(a=>{
+div.innerHTML+=`
+<div class="card">
+<b>${a.horario}</b> - ${a.nome} (ID:${a.id})<br>
+<span class="status ${a.status}">${a.status}</span><br>
+${state.usuarioTipo!=="professor"?
+`<button onclick="mensagem(${a.idx})">Mensagem enviada</button>
+<button onclick="confirmar(${a.idx})">Presença confirmada</button>
+<button onclick="cancelar(${a.idx})">Cancelar</button>`:
+`<button onclick="realizado(${a.idx})">Avaliação realizada</button>
+<button onclick="faltou(${a.idx})">Faltou</button>`}
+</div>`;
+});
+}
+
+/* STATUS - NÃO SAI MAIS DA TELA */
+
+function mensagem(i){
+agendamentos[i].status="mensagem";
+salvar();
+mostrarLista(state.dataAtual);
+}
+function confirmar(i){
+agendamentos[i].status="confirmado";
+salvar();
+mostrarLista(state.dataAtual);
+}
+function realizado(i){
+agendamentos[i].status="realizado";
+salvar();
+mostrarLista(state.dataAtual);
+}
+function faltou(i){
+agendamentos[i].status="faltou";
+salvar();
+mostrarLista(state.dataAtual);
+}
+function cancelar(i){
+if(state.usuarioTipo==="admin"||agendamentos[i].criadoPor===state.usuarioNome){
+agendamentos.splice(i,1);
+salvar();
+mostrarLista(state.dataAtual);
+}else alert("Somente quem agendou ou admin pode cancelar.");
+}
+
+/* UTIL */
+
+function salvar(){
+localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
+localStorage.setItem("bloqueios",JSON.stringify(bloqueios));
+}
+function formatarISO(ano,mes,dia){
+return ano+"-"+String(mes+1).padStart(2,"0")+"-"+String(dia).padStart(2,"0");
+}
+function nomeMes(m){
+return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];
+}
 
 </script>
 </body>
