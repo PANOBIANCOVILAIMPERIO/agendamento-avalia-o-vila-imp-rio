@@ -29,7 +29,8 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 
 .card{background:white;padding:12px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
 
-.calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+.calendario-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .dia{padding:10px;text-align:center;border:1px solid #ccc;cursor:pointer}
 .dia.liberado{background:#e6f4ea}
 .dia.inativo{background:#f3f4f6;opacity:0.5}
@@ -88,10 +89,11 @@ modo:null,
 mes:new Date().getMonth(),
 ano:new Date().getFullYear(),
 dataSelecionada:null
-}
+};
 
 let agendamentos=JSON.parse(localStorage.getItem("agendamentos")||"[]");
 let bloqueios=JSON.parse(localStorage.getItem("bloqueios")||"[]");
+let recepcionistas=JSON.parse(localStorage.getItem("recepcionistas")||"[]");
 
 document.getElementById("anoAtual").innerText=new Date().getFullYear();
 
@@ -140,6 +142,54 @@ m.innerHTML+=`<button onclick="state.modo='agendar';renderCalendario()">➕ Agen
 m.innerHTML+=`<button onclick="state.modo='bloqDia';renderCalendario()">🚫 Bloquear Dia</button>`;
 m.innerHTML+=`<button onclick="state.modo='bloqHora';renderCalendario()">⛔ Bloquear Horário</button>`;
 }
+
+if(state.tipo==="admin"){
+m.innerHTML+=`<button onclick="abrirCadastroRecep()">👥 Recepcionistas</button>`;
+}
+}
+
+/* ================= CADASTRO RECEPCIONISTAS ================= */
+
+function abrirCadastroRecep(){
+let main=document.getElementById("main");
+main.innerHTML=`
+<h2>Cadastro de Recepcionistas</h2>
+<input id="nomeRecep" placeholder="Nome único">
+<input id="senhaRecep" placeholder="Senha">
+<button onclick="cadastrarRecep()">Cadastrar</button>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="listaRecep"></div>
+`;
+renderListaRecep();
+}
+
+function renderListaRecep(){
+let div=document.getElementById("listaRecep");
+div.innerHTML="";
+recepcionistas.forEach((r,i)=>{
+div.innerHTML+=`
+<div class="card">
+<b>${r.nome}</b><br>
+Senha: ${r.senha}<br>
+<button onclick="excluirRecep(${i})">Excluir</button>
+</div>`;
+});
+}
+
+function cadastrarRecep(){
+let nome=document.getElementById("nomeRecep").value.trim();
+let senha=document.getElementById("senhaRecep").value.trim();
+if(!nome||!senha) return alert("Preencha nome e senha");
+if(recepcionistas.find(r=>r.nome===nome)) return alert("Nome já existe");
+recepcionistas.push({nome,senha});
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+renderListaRecep();
+}
+
+function excluirRecep(i){
+recepcionistas.splice(i,1);
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+renderListaRecep();
 }
 
 /* ================= CALENDÁRIO ================= */
@@ -149,7 +199,11 @@ function renderCalendario(){
 let main=document.getElementById("main");
 
 main.innerHTML=`
+<div class="calendario-header">
+<button onclick="mesAnterior()">◀</button>
 <h2>${nomeMes(state.mes)} ${state.ano}</h2>
+<button onclick="mesSeguinte()">▶</button>
+</div>
 <div class="calendario-grid">
 <div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SAB</div>
 </div>
@@ -186,151 +240,16 @@ grid.appendChild(div);
 }
 }
 
-/* ================= DIA ================= */
-
-const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
-
-function abrirDia(data){
-
-state.dataSelecionada=data;
-
-let bloqueadoDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
-
-if(state.modo==="bloqDia"){
-if(!bloqueadoDia){
-bloqueios.push({data,tipo:"dia"});
-}else if(state.tipo==="admin"){
-bloqueios=bloqueios.filter(b=>!(b.data===data && b.tipo==="dia"));
-}
-salvar();
+function mesAnterior(){
+state.mes--;
+if(state.mes<0){state.mes=11;state.ano--;}
 renderCalendario();
-return;
 }
 
-if(bloqueadoDia && state.tipo!=="admin"){
-alert("Dia bloqueado");
-return;
-}
-
-let main=document.getElementById("main");
-main.innerHTML=`<h2>${data}</h2>
-<button onclick="renderCalendario()">⬅ Voltar</button>
-<div class="grid-horarios" id="horarios"></div>
-<div id="lista"></div>`;
-
-let grid=document.getElementById("horarios");
-
-horarios.forEach(h=>{
-
-let btn=document.createElement("button");
-btn.className="horario-btn";
-btn.innerText=h;
-
-let ocupado=agendamentos.find(a=>a.data===data && a.horario===h);
-let bloqueado=bloqueios.find(b=>b.data===data && b.horario===h);
-
-if(ocupado){
-btn.classList.add("ocupado");
-btn.disabled=true;
-}
-
-if(bloqueado){
-btn.classList.add("bloqueado");
-if(state.tipo==="admin"){
-btn.onclick=()=>desbloquearHorario(data,h);
-}
-}else{
-
-if(state.modo==="agendar" && !ocupado){
-btn.onclick=()=>agendar(data,h);
-}
-
-if(state.modo==="bloqHora" && !ocupado){
-btn.onclick=()=>{
-bloqueios.push({data,horario:h,tipo:"hora"});
-salvar();
-abrirDia(data);
-}
-}
-}
-
-grid.appendChild(btn);
-});
-
-mostrarLista(data);
-}
-
-/* ================= AGENDAR ================= */
-
-function agendar(data,horario){
-
-let nome=prompt("Nome do aluno:");
-let id=prompt("ID numérico até 10 dígitos:");
-
-if(!/^[0-9]{1,10}$/.test(id)) return alert("ID inválido");
-
-let existe=agendamentos.find(a=>a.id===id);
-if(existe && existe.nome!==nome) return alert("ID já vinculado a outro nome");
-
-agendamentos.push({
-nome,id,data,horario,status:"pendente",criadoPor:state.nome
-});
-
-salvar();
-abrirDia(data);
-}
-
-/* ================= LISTA ================= */
-
-function mostrarLista(data){
-
-let lista=agendamentos
-.map((a,i)=>({...a,idx:i}))
-.filter(a=>a.data===data)
-.sort((a,b)=>a.horario.localeCompare(b.horario));
-
-let div=document.getElementById("lista");
-div.innerHTML="<h3>Agendamentos:</h3>";
-
-lista.forEach(a=>{
-div.innerHTML+=`
-<div class="card">
-<b>${a.horario}</b> - ${a.nome} (ID:${a.id})<br>
-<span class="status ${a.status}">${a.status}</span><br>
-${state.tipo!=="professor"?
-`<button onclick="mensagem(${a.idx})">Mensagem enviada</button>
-<button onclick="confirmar(${a.idx})">Presença confirmada</button>
-<button onclick="cancelar(${a.idx})">Cancelar</button>`
-:
-`<button onclick="realizado(${a.idx})">Avaliação realizada</button>
-<button onclick="faltou(${a.idx})">Faltou</button>`}
-</div>`;
-});
-}
-
-/* ================= STATUS ================= */
-
-function mensagem(i){agendamentos[i].status="mensagem";salvar();mostrarLista(state.dataSelecionada);}
-function confirmar(i){agendamentos[i].status="confirmado";salvar();mostrarLista(state.dataSelecionada);}
-function realizado(i){agendamentos[i].status="realizado";salvar();mostrarLista(state.dataSelecionada);}
-function faltou(i){agendamentos[i].status="faltou";salvar();mostrarLista(state.dataSelecionada);}
-
-function cancelar(i){
-if(state.tipo==="admin" || agendamentos[i].criadoPor===state.nome){
-agendamentos.splice(i,1);
-salvar();
-mostrarLista(state.dataSelecionada);
-}else{
-alert("Somente quem agendou ou admin pode cancelar.");
-}
-}
-
-/* ================= DESBLOQUEAR ================= */
-
-function desbloquearHorario(data,h){
-bloqueios=bloqueios.filter(b=>!(b.data===data && b.horario===h));
-salvar();
-abrirDia(data);
+function mesSeguinte(){
+state.mes++;
+if(state.mes>11){state.mes=0;state.ano++;}
+renderCalendario();
 }
 
 /* ================= UTIL ================= */
