@@ -6,7 +6,6 @@
 
 <style>
 body{margin:0;font-family:Arial;background:#f4f6f9}
-.hidden{display:none}
 button{cursor:pointer;padding:6px 10px;margin:4px}
 input{padding:6px;margin:4px 0;width:100%}
 
@@ -64,7 +63,7 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 </div>
 </div>
 
-<div id="app" class="layout hidden">
+<div id="app" class="layout" style="display:none;">
 <div class="sidebar">
 <div class="sidebar-header">
 <img src="logo-panobianco.png" style="max-width:80px">
@@ -79,6 +78,8 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 </div>
 
 <script>
+
+const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
 
 let state={
 tipo:null,
@@ -115,8 +116,8 @@ state.tipo="professor"; state.nome="PROFESSOR"; entrar();
 }
 
 function entrar(){
-document.getElementById("loginScreen").classList.add("hidden");
-document.getElementById("app").classList.remove("hidden");
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("app").style.display="flex";
 document.getElementById("usuario").innerText=state.nome;
 renderMenu();
 renderCalendario();
@@ -136,7 +137,7 @@ if(state.tipo!=="professor"){
 m.innerHTML+=`<button onclick="state.modo='agendar';renderCalendario()">➕ Agendar</button>`;
 m.innerHTML+=`<button onclick="state.modo='bloqDia';renderCalendario()">🚫 Bloquear Dia</button>`;
 m.innerHTML+=`<button onclick="state.modo='bloqHora';renderCalendario()">⛔ Bloquear Horário</button>`;
-m.innerHTML+=`<button onclick="abrirBuscaID()">🔎 Buscar por ID</button>`;
+m.innerHTML+=`<button onclick="abrirBusca()">🔎 Buscar por ID</button>`;
 }
 
 if(state.tipo==="admin"){
@@ -144,87 +145,10 @@ m.innerHTML+=`<button onclick="abrirRecep()">👥 Recepcionistas</button>`;
 }
 }
 
-/* BUSCA POR ID */
-
-function abrirBuscaID(){
-let main=document.getElementById("main");
-main.innerHTML=`
-<h2>Buscar Agendamento por ID</h2>
-<input id="buscaID" placeholder="Digite o ID do aluno">
-<button onclick="buscarID()">Buscar</button>
-<button onclick="renderCalendario()">⬅ Voltar</button>
-<div id="resultadoBusca"></div>`;
-}
-
-function buscarID(){
-let id=document.getElementById("buscaID").value.trim();
-let div=document.getElementById("resultadoBusca");
-div.innerHTML="";
-if(!id) return alert("Digite um ID");
-
-let encontrados=agendamentos.filter(a=>a.id===id);
-
-if(encontrados.length===0){
-div.innerHTML="<div class='card'>Nenhum agendamento encontrado.</div>";
-return;
-}
-
-encontrados.forEach(a=>{
-div.innerHTML+=`
-<div class="card">
-<b>${a.nome}</b><br>
-Data: ${a.data}<br>
-Horário: ${a.horario}<br>
-Status: ${a.status}
-</div>`;
-});
-}
-
-/* TODO RESTANTE DO SEU SISTEMA */
-
-function abrirRecep(){
-let main=document.getElementById("main");
-main.innerHTML=`<h2>Recepcionistas</h2>
-<input id="nomeR" placeholder="Nome único">
-<input id="senhaR" placeholder="Senha">
-<button onclick="addRecep()">Cadastrar</button>
-<button onclick="renderCalendario()">⬅ Voltar</button>
-<div id="listaR"></div>`;
-renderListaR();
-}
-
-function renderListaR(){
-let div=document.getElementById("listaR");
-div.innerHTML="";
-recepcionistas.forEach((r,i)=>{
-div.innerHTML+=`<div class="card">
-<b>${r.nome}</b><br>
-Senha: ${r.senha}<br>
-<button onclick="removerRecep(${i})">Excluir</button>
-</div>`;
-});
-}
-
-function addRecep(){
-let nome=document.getElementById("nomeR").value.trim();
-let senha=document.getElementById("senhaR").value.trim();
-if(!nome||!senha) return alert("Preencha tudo");
-if(recepcionistas.find(r=>r.nome===nome)) return alert("Nome já existe");
-recepcionistas.push({nome,senha});
-localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
-renderListaR();
-}
-
-function removerRecep(i){
-recepcionistas.splice(i,1);
-localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
-renderListaR();
-}
-
 /* CALENDÁRIO */
 
 function renderCalendario(){
-
+state.modo=null;
 let main=document.getElementById("main");
 
 main.innerHTML=`
@@ -267,20 +191,15 @@ grid.appendChild(div);
 function mesAnt(){state.mes--; if(state.mes<0){state.mes=11;state.ano--;} renderCalendario();}
 function mesProx(){state.mes++; if(state.mes>11){state.mes=0;state.ano++;} renderCalendario();}
 
-const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
+/* DIA */
 
 function abrirDia(data){
 state.dataAtual=data;
 
 let bloqueioDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
-
-if(state.modo==="bloqDia"){
-if(!bloqueioDia){bloqueios.push({data,tipo:"dia"});}
-else if(state.tipo==="admin"){bloqueios=bloqueios.filter(b=>!(b.data===data && b.tipo==="dia"));}
-salvar(); renderCalendario(); return;
+if(bloqueioDia && state.tipo!=="admin"){
+alert("Dia bloqueado"); return;
 }
-
-if(bloqueioDia && state.tipo!=="admin"){alert("Dia bloqueado"); return;}
 
 let main=document.getElementById("main");
 main.innerHTML=`<h2>${data}</h2>
@@ -300,11 +219,9 @@ let bloqueado=bloqueios.find(b=>b.data===data && b.horario===h);
 
 if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
 if(bloqueado){btn.classList.add("bloqueado");}
-else{
-if(state.modo==="agendar" && !ocupado)
+
+if(!ocupado && !bloqueado && state.tipo!=="professor"){
 btn.onclick=()=>agendar(data,h);
-if(state.modo==="bloqHora" && !ocupado)
-btn.onclick=()=>{bloqueios.push({data,horario:h,tipo:"hora"});salvar();abrirDia(data);}
 }
 
 grid.appendChild(btn);
@@ -313,6 +230,8 @@ grid.appendChild(btn);
 mostrarLista(data);
 }
 
+/* AGENDAR */
+
 function agendar(data,horario){
 let nome=prompt("Nome do aluno:");
 let id=prompt("ID numérico até 10 dígitos:");
@@ -320,8 +239,11 @@ if(!/^[0-9]{1,10}$/.test(id)) return alert("ID inválido");
 let existe=agendamentos.find(a=>a.id===id);
 if(existe && existe.nome!==nome) return alert("ID já vinculado a outro nome");
 agendamentos.push({nome,id,data,horario,status:"pendente",criadoPor:state.nome});
-salvar(); abrirDia(data);
+salvar();
+abrirDia(data);
 }
+
+/* LISTA */
 
 function mostrarLista(data){
 let lista=agendamentos
@@ -348,15 +270,97 @@ ${state.tipo!=="professor"?
 });
 }
 
+/* STATUS */
+
 function msg(i){agendamentos[i].status="mensagem";salvar();mostrarLista(state.dataAtual);}
 function conf(i){agendamentos[i].status="confirmado";salvar();mostrarLista(state.dataAtual);}
 function real(i){agendamentos[i].status="realizado";salvar();mostrarLista(state.dataAtual);}
 function falt(i){agendamentos[i].status="faltou";salvar();mostrarLista(state.dataAtual);}
+
 function cancel(i){
 if(state.tipo==="admin" || agendamentos[i].criadoPor===state.nome){
-agendamentos.splice(i,1); salvar(); mostrarLista(state.dataAtual);
+agendamentos.splice(i,1);
+salvar();
+mostrarLista(state.dataAtual);
 }else alert("Somente quem agendou ou admin pode cancelar.");
 }
+
+/* BUSCA */
+
+function abrirBusca(){
+let main=document.getElementById("main");
+main.innerHTML=`
+<h2>Buscar por ID</h2>
+<input id="buscaID" placeholder="Digite o ID">
+<button onclick="buscarID()">Buscar</button>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="resultado"></div>`;
+}
+
+function buscarID(){
+let id=document.getElementById("buscaID").value.trim();
+let div=document.getElementById("resultado");
+div.innerHTML="";
+let encontrados=agendamentos.filter(a=>a.id===id);
+if(encontrados.length===0){
+div.innerHTML="<div class='card'>Nenhum agendamento encontrado</div>";
+return;
+}
+encontrados.forEach(a=>{
+div.innerHTML+=`
+<div class="card">
+<b>${a.nome}</b><br>
+Data: ${a.data}<br>
+Horário: ${a.horario}<br>
+Status: ${a.status}
+</div>`;
+});
+}
+
+/* RECEPCIONISTAS */
+
+function abrirRecep(){
+let main=document.getElementById("main");
+main.innerHTML=`
+<h2>Recepcionistas</h2>
+<input id="nomeR" placeholder="Nome único">
+<input id="senhaR" placeholder="Senha">
+<button onclick="addRecep()">Cadastrar</button>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="listaR"></div>`;
+renderListaR();
+}
+
+function renderListaR(){
+let div=document.getElementById("listaR");
+div.innerHTML="";
+recepcionistas.forEach((r,i)=>{
+div.innerHTML+=`
+<div class="card">
+<b>${r.nome}</b><br>
+Senha: ${r.senha}<br>
+<button onclick="removerRecep(${i})">Excluir</button>
+</div>`;
+});
+}
+
+function addRecep(){
+let nome=document.getElementById("nomeR").value.trim();
+let senha=document.getElementById("senhaR").value.trim();
+if(!nome||!senha) return alert("Preencha tudo");
+if(recepcionistas.find(r=>r.nome===nome)) return alert("Nome já existe");
+recepcionistas.push({nome,senha});
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+renderListaR();
+}
+
+function removerRecep(i){
+recepcionistas.splice(i,1);
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+renderListaR();
+}
+
+/* UTIL */
 
 function salvar(){
 localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
