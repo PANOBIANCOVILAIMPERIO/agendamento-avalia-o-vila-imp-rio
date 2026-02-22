@@ -2,194 +2,331 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Agendamento Avaliação Física Vila Império</title>
+<title>Agendamento Avaliação Física - Vila Império</title>
 
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f9}
-.topo{background:#111;color:#fff;padding:15px;text-align:center}
-.container{display:flex}
-.menu{width:220px;background:#1e1e2f;color:white;min-height:100vh;padding:20px}
-.menu button{width:100%;margin-bottom:10px;padding:10px;border:none;cursor:pointer}
-.area{flex:1;padding:20px}
-.card{background:white;padding:10px;margin-bottom:10px;border-radius:6px}
-button{cursor:pointer}
+body{margin:0;font-family:Arial;background:#f4f6f9}
 .hidden{display:none}
-.calendario button{margin:2px;padding:8px;width:40px}
-.horarios button{margin:5px;padding:8px}
+button{cursor:pointer;padding:6px 10px;margin:4px}
+input{padding:6px;margin:4px 0;width:100%}
+
+.header-login{text-align:center;padding:30px;background:white}
+.header-login img{max-width:160px}
+.login-container{display:flex;justify-content:center;gap:40px;margin-top:40px}
+.login-box{
+width:220px;height:220px;border:2px solid #ccc;border-radius:12px;
+display:flex;justify-content:center;align-items:center;
+font-size:22px;font-weight:bold;cursor:pointer;background:transparent
+}
+.login-box:hover{border-color:#1e88e5;color:#1e88e5}
+
+.layout{display:flex;height:100vh}
+.sidebar{width:260px;background:#1f2937;color:white;display:flex;flex-direction:column}
+.sidebar-header{text-align:center;padding:20px;border-bottom:1px solid #333}
+.sidebar button{background:none;border:none;color:white;padding:12px;text-align:left}
+.sidebar button:hover{background:#374151}
+.content{flex:1;padding:20px;overflow:auto}
+
+.card{background:white;padding:12px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+
+.status{padding:3px 8px;border-radius:4px;color:white;font-size:12px}
+.pendente{background:gray}
+.mensagem{background:#facc15}
+.confirmado{background:#2563eb}
+.realizado{background:#16a34a}
+.faltou{background:#dc2626}
+
+.calendario-header{display:flex;justify-content:space-between;align-items:center}
+.calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:15px}
+.dia{padding:10px;background:white;border:1px solid #ccc;text-align:center;cursor:pointer}
+.dia.lotado{background:#fecaca}
+.dia.bloqueado{background:#dc2626;color:white}
+
+.grid-horarios{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:15px}
+.horario-btn{padding:10px;border:1px solid #ccc;border-radius:6px;background:white}
+.horario-btn.ocupado{background:#ddd}
+.horario-btn.bloqueado{background:#dc2626;color:white}
+.horario-btn.treinamento{background:#7c3aed;color:white}
 </style>
 </head>
-
 <body>
 
-<div class="topo">
-<h2>Agendamento Avaliação Física Vila Império - 2026</h2>
+<!-- LOGIN -->
+<div id="loginScreen">
+<div class="header-login">
+<img src="logo-panobianco.png">
+<h2>AGENDAMENTO AVALIAÇÃO FÍSICA</h2>
+<h3>VILA IMPÉRIO - <span id="anoAtual"></span></h3>
+</div>
+<div class="login-container">
+<div class="login-box" onclick="loginAdmin()">ADMIN</div>
+<div class="login-box" onclick="loginRecepcao()">RECEPÇÃO</div>
+<div class="login-box" onclick="loginProfessor()">PROFESSOR</div>
+</div>
 </div>
 
-<div class="container">
-
-<div class="menu">
-<button onclick="novoAgendamento()">Novo Agendamento</button>
-<button onclick="bloquearDiaModo()">Bloquear Dia</button>
-<button onclick="bloquearHorarioModo()">Bloquear Horário</button>
+<!-- APP -->
+<div id="app" class="layout hidden">
+<div class="sidebar">
+<div class="sidebar-header">
+<img src="logo-panobianco.png" style="max-width:80px">
+<h4 id="usuarioLogadoLabel"></h4>
 </div>
-
-<div class="area">
-
-<div id="calendario"></div>
-<div id="horarios"></div>
-<div id="listaDia"></div>
-
+<div id="menuLateral"></div>
+<button onclick="logout()">Sair</button>
+</div>
+<div class="content">
+<div id="areaPrincipal"></div>
 </div>
 </div>
 
 <script>
 
-let usuarioTipo="admin";
-let usuarioNome="admin";
+/* ---------- VARIÁVEIS ---------- */
 
-let agendamentos=JSON.parse(localStorage.getItem("ag"))||[];
-let bloqueios=JSON.parse(localStorage.getItem("blo"))||[];
+let usuarioTipo=null;
+let usuarioNome=null;
 
+let recepcionistas=JSON.parse(localStorage.getItem("recepcionistas")||"[]");
+let agendamentos=JSON.parse(localStorage.getItem("agendamentos")||"[]");
+let bloqueios=JSON.parse(localStorage.getItem("bloqueios")||"[]");
+
+document.getElementById("anoAtual").innerText=new Date().getFullYear();
+
+/* ---------- LOGIN ---------- */
+
+function loginAdmin(){
+let senha=prompt("Senha Admin:");
+if(senha==="696907"){
+usuarioTipo="admin";
+usuarioNome="ADMIN";
+entrar();
+}
+}
+
+function loginRecepcao(){
+let nome=prompt("Nome:");
+let senha=prompt("Senha:");
+let user=recepcionistas.find(r=>r.nome===nome&&r.senha===senha);
+if(user){
+usuarioTipo="recepcao";
+usuarioNome=nome;
+entrar();
+}else alert("Login inválido");
+}
+
+function loginProfessor(){
+usuarioTipo="professor";
+usuarioNome="PROFESSOR";
+entrar();
+}
+
+function logout(){location.reload();}
+
+/* ---------- ENTRAR ---------- */
+
+function entrar(){
+limparAntigos();
+document.getElementById("loginScreen").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+document.getElementById("usuarioLogadoLabel").innerText=usuarioNome;
+renderMenu();
+abrirCalendario();
+}
+
+/* ---------- LIMPEZA 30 DIAS ---------- */
+
+function limparAntigos(){
+let hoje=new Date();
+agendamentos=agendamentos.filter(a=>((hoje-new Date(a.data))/(1000*60*60*24))<=30);
+bloqueios=bloqueios.filter(b=>((hoje-new Date(b.data))/(1000*60*60*24))<=30);
+salvar();
+}
+
+/* ---------- MENU ---------- */
+
+function renderMenu(){
+let m=document.getElementById("menuLateral");
+m.innerHTML="";
+m.innerHTML+=`<button onclick="abrirCalendario()">📆 Calendário</button>`;
+
+if(usuarioTipo!=="professor"){
+m.innerHTML+=`<button onclick="abrirCalendario(true)">➕ Novo</button>`;
+m.innerHTML+=`<button onclick="modoBloqueioDia()">🚫 Bloquear Dia</button>`;
+m.innerHTML+=`<button onclick="modoBloqueioHorario()">⛔ Bloquear Horário</button>`;
+}
+
+if(usuarioTipo==="admin"){
+m.innerHTML+=`<button onclick="cadastroRecep()">👥 Recepcionistas</button>`;
+}
+}
+
+/* ---------- CALENDÁRIO ---------- */
+
+let mesAtual=new Date().getMonth();
+let anoAtual=new Date().getFullYear();
 let modoAgendamento=false;
-let modoBloqueioDia=false;
-let modoBloqueioHorario=false;
+let modoBloqueioDiaAtivo=false;
+let modoBloqueioHorarioAtivo=false;
 
-const horariosFixos=[
-"06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30",
-"16:00","16:20","16:40","17:00","17:20","17:40",
-"18:00","18:20","18:40","19:20","19:40","21:00","21:20"
-];
+function abrirCalendario(agendamento=false){
+modoAgendamento=agendamento;
+modoBloqueioDiaAtivo=false;
+modoBloqueioHorarioAtivo=false;
+renderCalendario();
+}
 
-function salvar(){
-localStorage.setItem("ag",JSON.stringify(agendamentos));
-localStorage.setItem("blo",JSON.stringify(bloqueios));
+function modoBloqueioDia(){
+modoBloqueioDiaAtivo=true;
+modoBloqueioHorarioAtivo=false;
+modoAgendamento=false;
+renderCalendario();
+}
+
+function modoBloqueioHorario(){
+modoBloqueioHorarioAtivo=true;
+modoBloqueioDiaAtivo=false;
+modoAgendamento=false;
+renderCalendario();
 }
 
 function renderCalendario(){
 
-let hoje=new Date();
-let mes=hoje.getMonth();
-let ano=hoje.getFullYear();
+let area=document.getElementById("areaPrincipal");
 
-let dias=new Date(ano,mes+1,0).getDate();
+area.innerHTML=`
+<div class="calendario-header">
+<button onclick="mesAnterior()">◀</button>
+<h2>${nomeMes(mesAtual)} ${anoAtual}</h2>
+<button onclick="mesSeguinte()">▶</button>
+</div>
+<div class="calendario-grid" id="gridCal"></div>
+`;
 
-let div=document.getElementById("calendario");
-div.innerHTML="<h3>Calendário</h3><div class='calendario'>";
+let dias=new Date(anoAtual,mesAtual+1,0).getDate();
+let grid=document.getElementById("gridCal");
 
 for(let d=1;d<=dias;d++){
 
-let dia=String(d).padStart(2,"0");
-let mesF=String(mes+1).padStart(2,"0");
-let data=`${dia}/${mesF}/${ano}`;
+let data=formatarISO(anoAtual,mesAtual,d);
 
-let bloqueioDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
+let div=document.createElement("div");
+div.className="dia";
+div.innerText=d;
 
-let style=bloqueioDia?"background:red;color:white":"";
+let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
+if(bloqueioDia)div.classList.add("bloqueado");
 
-div.innerHTML+=`<button style="${style}" onclick="clicarDia('${data}')">${d}</button>`;
+div.onclick=()=>clicarDia(data);
+
+grid.appendChild(div);
+}
 }
 
-div.innerHTML+="</div>";
-}
+function mesAnterior(){mesAtual--;if(mesAtual<0){mesAtual=11;anoAtual--;}renderCalendario();}
+function mesSeguinte(){mesAtual++;if(mesAtual>11){mesAtual=0;anoAtual++;}renderCalendario();}
+function nomeMes(m){return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];}
+
+/* ---------- DIA ---------- */
+
+const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
 
 function clicarDia(data){
 
-let bloqueioDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
+let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
 
 if(bloqueioDia && usuarioTipo!=="admin"){
 alert("Este dia está bloqueado.");
 return;
 }
 
-if(modoBloqueioDia){
-bloqueios.push({data:data,tipo:"dia"});
+if(modoBloqueioDiaAtivo){
+bloqueios.push({data,tipo:"dia",criadoPor:usuarioNome});
 salvar();
-modoBloqueioDia=false;
 renderCalendario();
 return;
 }
 
-renderHorarios(data);
+let area=document.getElementById("areaPrincipal");
+
+area.innerHTML=`<h2>${data}</h2>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="adminDesbloqueio"></div>
+<div class="grid-horarios" id="gridHor"></div>
+<div id="listaDia"></div>
+`;
+
+if(bloqueioDia&&usuarioTipo==="admin"){
+document.getElementById("adminDesbloqueio").innerHTML=
+`<button onclick="desbloquearDia('${data}')">🔓 Desbloquear Dia</button>`;
+}
+
+let grid=document.getElementById("gridHor");
+
+horarios.forEach(h=>{
+
+let btn=document.createElement("button");
+btn.className="horario-btn";
+btn.innerText=h;
+
+let ocupado=agendamentos.find(a=>a.data===data&&a.horario===h);
+let bloqueado=bloqueios.find(b=>b.data===data&&b.horario===h);
+
+if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
+if(bloqueado){
+btn.classList.add(bloqueado.motivo==="treinamento"?"treinamento":"bloqueado");
+btn.disabled=true;
+}
+
+if(modoBloqueioHorarioAtivo&&!ocupado&&!bloqueado){
+btn.onclick=()=>{
+let motivo=confirm("OK = Bloqueio Normal\nCancelar = Treinamento")?"normal":"treinamento";
+bloqueios.push({data,horario:h,tipo:"horario",motivo,criadoPor:usuarioNome});
+salvar();
+clicarDia(data);
+};
+}
+
+if(modoAgendamento&&!ocupado&&!bloqueado){
+btn.onclick=()=>confirmarAgendamento(data,h);
+}
+
+grid.appendChild(btn);
+});
+
 mostrarAgendamentosDoDia(data);
 }
 
-function renderHorarios(data){
+/* ---------- AGENDAMENTO ---------- */
 
-let div=document.getElementById("horarios");
-div.innerHTML="<h3>Horários</h3><div class='horarios'>";
-
-horariosFixos.forEach(h=>{
-
-let ocupado=agendamentos.find(a=>a.data===data && a.horario===h);
-let bloqueado=bloqueios.find(b=>b.data===data && b.horario===h);
-
-let style="";
-if(ocupado) style="background:#ccc";
-if(bloqueado) style="background:red;color:white";
-
-div.innerHTML+=`<button style="${style}" onclick="clicarHorario('${data}','${h}')">${h}</button>`;
-
-});
-
-div.innerHTML+="</div>";
-}
-
-function clicarHorario(data,horario){
-
-let bloqueioDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
-if(bloqueioDia){ alert("Dia bloqueado"); return; }
-
-let bloqueado=bloqueios.find(b=>b.data===data && b.horario===horario);
-if(bloqueado){ alert("Horário bloqueado"); return; }
-
-let ocupado=agendamentos.find(a=>a.data===data && a.horario===horario);
-if(ocupado){ alert("Horário já ocupado"); return; }
-
-if(modoAgendamento){
+function confirmarAgendamento(data,horario){
 
 let nome=prompt("Nome do aluno:");
-if(!nome) return;
+let id=prompt("ID numérico até 10 dígitos:");
 
-let id=prompt("ID (até 10 números):");
-if(!id || !/^[0-9]{1,10}$/.test(id)){alert("ID inválido");return;}
+if(!/^[0-9]{1,10}$/.test(id)){alert("ID inválido");return;}
 
-let alunoExistente=agendamentos.find(a=>a.id===id);
-if(alunoExistente && alunoExistente.nome!==nome){
-alert("Este ID já pertence a outro aluno.");
+let existente=agendamentos.find(a=>a.id===id);
+if(existente&&existente.nome!==nome){
+alert("Este ID já está vinculado a outro nome.");
 return;
 }
 
-agendamentos.push({
-data:data,
-horario:horario,
-nome:nome,
-id:id,
-status:"pendente",
-criadoPor:usuarioNome
-});
-
+agendamentos.push({nome,id,data,horario,status:"pendente",criadoPor:usuarioNome});
 salvar();
 modoAgendamento=false;
-renderHorarios(data);
-mostrarAgendamentosDoDia(data);
+clicarDia(data);
 }
 
-if(modoBloqueioHorario){
-bloqueios.push({data:data,horario:horario,tipo:"horario"});
-salvar();
-modoBloqueioHorario=false;
-renderHorarios(data);
-}
-
-}
+/* ---------- LISTA ---------- */
 
 function mostrarAgendamentosDoDia(data){
 
-let lista=agendamentos.filter(a=>a.data===data)
-.sort((a,b)=>a.horario.localeCompare(b.horario));
+let lista=agendamentos.filter(a=>a.data===data);
+lista.sort((a,b)=>a.horario.localeCompare(b.horario));
 
 let div=document.getElementById("listaDia");
-div.innerHTML="<h3>Agendamentos do dia</h3>";
+div.innerHTML="<h3>Agendamentos:</h3>";
 
 if(lista.length===0){
 div.innerHTML+="Nenhum agendamento.";
@@ -203,85 +340,66 @@ let botoes="";
 if(usuarioTipo!=="professor"){
 
 if(a.status==="pendente"){
-botoes+=`<button style="background:#f1c40f" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','mensagem')">Mensagem enviada</button>`;
+botoes+=`<button style="background:#facc15" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','mensagem')">Mensagem enviada</button>`;
 }
 
 if(a.status==="mensagem"){
-botoes+=`<button style="background:#3498db;color:white" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','confirmado')">Presença confirmada</button>`;
+botoes+=`<button style="background:#2563eb;color:white" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','confirmado')">Presença confirmada</button>`;
 }
 
 if(usuarioTipo==="admin"||a.criadoPor===usuarioNome){
-botoes+=`<button style="background:#e74c3c;color:white" onclick="cancelarAgendamento('${a.id}','${a.data}','${a.horario}')">Cancelar</button>`;
+botoes+=`<button style="background:#dc2626;color:white" onclick="cancelarAgendamento('${a.id}','${a.data}','${a.horario}')">Cancelar</button>`;
 }
 }
 
 if(usuarioTipo==="professor"){
-botoes+=`<button style="background:#27ae60;color:white" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','realizado')">Avaliação realizada</button>`;
-botoes+=`<button style="background:#c0392b;color:white" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','faltou')">Faltou</button>`;
+botoes+=`<button style="background:#16a34a;color:white" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','realizado')">Avaliação realizada</button>`;
+botoes+=`<button style="background:#dc2626;color:white" onclick="alterarStatus('${a.id}','${a.data}','${a.horario}','faltou')">Faltou</button>`;
 }
 
 div.innerHTML+=`
 <div class="card">
 <b>${a.horario}</b> - ${a.nome} (ID: ${a.id})<br>
-Status: ${a.status}<br>
+<span class="status ${a.status}">${a.status}</span><br>
 ${botoes}
-</div>
-`;
-
+</div>`;
 });
-
 }
 
 function alterarStatus(id,data,horario,status){
 let ag=agendamentos.find(a=>a.id===id&&a.data===data&&a.horario===horario);
-if(!ag) return;
+if(!ag)return;
 ag.status=status;
 salvar();
 mostrarAgendamentosDoDia(data);
 }
 
 function cancelarAgendamento(id,data,horario){
-
 let index=agendamentos.findIndex(a=>a.id===id&&a.data===data&&a.horario===horario);
-if(index===-1) return;
-
+if(index===-1)return;
 let ag=agendamentos[index];
-
 if(usuarioTipo!=="admin"&&ag.criadoPor!==usuarioNome){
 alert("Somente quem agendou ou o admin pode cancelar.");
 return;
 }
-
 agendamentos.splice(index,1);
 salvar();
-renderHorarios(data);
-mostrarAgendamentosDoDia(data);
+clicarDia(data);
 }
 
-function novoAgendamento(){
-modoAgendamento=true;
-modoBloqueioDia=false;
-modoBloqueioHorario=false;
-alert("Clique no dia e depois no horário.");
+/* ---------- UTIL ---------- */
+
+function formatarISO(ano,mes,dia){
+let m=String(mes+1).padStart(2,"0");
+let d=String(dia).padStart(2,"0");
+return `${ano}-${m}-${d}`;
 }
 
-function bloquearDiaModo(){
-modoBloqueioDia=true;
-modoAgendamento=false;
-modoBloqueioHorario=false;
-alert("Clique no dia para bloquear.");
+function salvar(){
+localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
+localStorage.setItem("bloqueios",JSON.stringify(bloqueios));
 }
-
-function bloquearHorarioModo(){
-modoBloqueioHorario=true;
-modoAgendamento=false;
-modoBloqueioDia=false;
-alert("Clique no dia e depois no horário para bloquear.");
-}
-
-renderCalendario();
 
 </script>
-
 </body>
 </html>
