@@ -29,16 +29,9 @@ font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 
 .card{background:white;padding:12px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
 
-.status{padding:3px 8px;border-radius:4px;color:white;font-size:12px}
-.pendente{background:gray}
-.mensagem{background:#facc15}
-.confirmado{background:#2563eb}
-.realizado{background:#16a34a}
-.faltou{background:#dc2626}
-
 .calendario-header{display:flex;justify-content:space-between;align-items:center}
-.calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:15px}
-.dia{padding:10px;background:white;border:1px solid #ccc;text-align:center;cursor:pointer}
+.calendario-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+.dia{padding:10px;text-align:center;border:1px solid #ccc;cursor:pointer}
 .dia.bloqueado{background:#dc2626;color:white}
 
 .grid-horarios{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:15px}
@@ -135,10 +128,11 @@ abrirCalendario();
 function renderMenu(){
 let m=document.getElementById("menuLateral");
 m.innerHTML="";
+
 m.innerHTML+=`<button onclick="abrirCalendario()">📆 Calendário</button>`;
 
 if(usuarioTipo!=="professor"){
-m.innerHTML+=`<button onclick="abrirCalendario(true)">➕ Novo</button>`;
+m.innerHTML+=`<button onclick="novoAgendamento()">➕ Agendar Avaliação</button>`;
 m.innerHTML+=`<button onclick="modoBloqueioDia()">🚫 Bloquear Dia</button>`;
 m.innerHTML+=`<button onclick="modoBloqueioHorario()">⛔ Bloquear Horário</button>`;
 }
@@ -148,16 +142,14 @@ m.innerHTML+=`<button onclick="cadastroRecep()">👥 Recepcionistas</button>`;
 }
 }
 
-/* CALENDÁRIO */
+/* MODOS */
 
-let mesAtual=new Date().getMonth();
-let anoAtual=new Date().getFullYear();
 let modoAgendamento=false;
 let modoBloqueioDiaAtivo=false;
 let modoBloqueioHorarioAtivo=false;
 
-function abrirCalendario(agendamento=false){
-modoAgendamento=agendamento;
+function novoAgendamento(){
+modoAgendamento=true;
 modoBloqueioDiaAtivo=false;
 modoBloqueioHorarioAtivo=false;
 renderCalendario();
@@ -165,15 +157,27 @@ renderCalendario();
 
 function modoBloqueioDia(){
 modoBloqueioDiaAtivo=true;
-modoBloqueioHorarioAtivo=false;
 modoAgendamento=false;
+modoBloqueioHorarioAtivo=false;
 renderCalendario();
 }
 
 function modoBloqueioHorario(){
 modoBloqueioHorarioAtivo=true;
-modoBloqueioDiaAtivo=false;
 modoAgendamento=false;
+modoBloqueioDiaAtivo=false;
+renderCalendario();
+}
+
+/* CALENDÁRIO */
+
+let mesAtual=new Date().getMonth();
+let anoAtual=new Date().getFullYear();
+
+function abrirCalendario(){
+modoAgendamento=false;
+modoBloqueioDiaAtivo=false;
+modoBloqueioHorarioAtivo=false;
 renderCalendario();
 }
 
@@ -187,11 +191,22 @@ area.innerHTML=`
 <h2>${nomeMes(mesAtual)} ${anoAtual}</h2>
 <button onclick="mesSeguinte()">▶</button>
 </div>
+
+<div class="calendario-grid" style="font-weight:bold">
+<div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SAB</div>
+</div>
+
 <div class="calendario-grid" id="gridCal"></div>
 `;
 
+let primeiroDia=new Date(anoAtual,mesAtual,1).getDay();
 let dias=new Date(anoAtual,mesAtual+1,0).getDate();
+
 let grid=document.getElementById("gridCal");
+
+for(let i=0;i<primeiroDia;i++){
+grid.appendChild(document.createElement("div"));
+}
 
 for(let d=1;d<=dias;d++){
 
@@ -202,17 +217,19 @@ let div=document.createElement("div");
 div.className="dia";
 div.innerText=d;
 
-// Apenas terça a sexta ficam clicáveis
-if(diaSemana<2 || diaSemana>5){
-div.style.opacity="0.4";
-grid.appendChild(div);
-continue;
+// visual
+if(diaSemana>=2 && diaSemana<=5){
+div.style.background="#e6f4ea";
+div.onclick=()=>clicarDia(data);
+}else{
+div.style.background="#f3f4f6";
+div.style.opacity="0.5";
 }
 
 let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
-if(bloqueioDia)div.classList.add("bloqueado");
-
-div.onclick=()=>clicarDia(data);
+if(bloqueioDia){
+div.classList.add("bloqueado");
+}
 
 grid.appendChild(div);
 }
@@ -231,7 +248,14 @@ function clicarDia(data){
 let bloqueioDia=bloqueios.find(b=>b.data===data&&b.tipo==="dia");
 
 if(bloqueioDia && usuarioTipo!=="admin"){
-alert("Este dia está bloqueado.");
+alert("Dia bloqueado");
+return;
+}
+
+if(modoBloqueioDiaAtivo){
+bloqueios.push({data,tipo:"dia"});
+salvar();
+renderCalendario();
 return;
 }
 
@@ -262,13 +286,10 @@ let bloqueado=bloqueios.find(b=>b.data===data&&b.horario===h);
 if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
 
 if(bloqueado){
-btn.classList.add(bloqueado.motivo==="treinamento"?"treinamento":"bloqueado");
-
+btn.classList.add("bloqueado");
 if(usuarioTipo==="admin"){
 btn.onclick=()=>desbloquearHorario(data,h);
-}else{
-btn.disabled=true;
-}
+}else btn.disabled=true;
 }
 
 if(modoAgendamento&&!ocupado&&!bloqueado){
@@ -277,8 +298,7 @@ btn.onclick=()=>confirmarAgendamento(data,h);
 
 if(modoBloqueioHorarioAtivo&&!ocupado&&!bloqueado){
 btn.onclick=()=>{
-let motivo=confirm("OK = Bloqueio Normal\nCancelar = Treinamento")?"normal":"treinamento";
-bloqueios.push({data,horario:h,tipo:"horario",motivo,criadoPor:usuarioNome});
+bloqueios.push({data,horario:h,tipo:"horario"});
 salvar();
 clicarDia(data);
 };
@@ -286,6 +306,31 @@ clicarDia(data);
 
 grid.appendChild(btn);
 });
+}
+
+/* AGENDAR */
+
+function confirmarAgendamento(data,horario){
+
+let nome=prompt("Nome do aluno:");
+let id=prompt("ID numérico até 10 dígitos:");
+
+if(!/^[0-9]{1,10}$/.test(id)){
+alert("ID inválido");
+return;
+}
+
+let existente=agendamentos.find(a=>a.id===id);
+if(existente && existente.nome!==nome){
+alert("ID já vinculado a outro nome");
+return;
+}
+
+agendamentos.push({nome,id,data,horario});
+salvar();
+
+modoAgendamento=false;
+clicarDia(data);
 }
 
 /* DESBLOQUEIO */
@@ -300,6 +345,46 @@ function desbloquearHorario(data,h){
 bloqueios=bloqueios.filter(b=>!(b.data===data&&b.horario===h));
 salvar();
 clicarDia(data);
+}
+
+/* RECEPCIONISTAS */
+
+function cadastroRecep(){
+if(usuarioTipo!=="admin"){alert("Somente admin");return;}
+let area=document.getElementById("areaPrincipal");
+area.innerHTML=`<h2>Recepcionistas</h2>
+<input id="novoNome" placeholder="Nome único">
+<input id="novaSenha" placeholder="Senha">
+<button onclick="addRecep()">Cadastrar</button>
+<button onclick="abrirCalendario()">⬅ Voltar</button>
+<hr><div id="listaRecep"></div>`;
+renderListaRecep();
+}
+
+function renderListaRecep(){
+let lista=document.getElementById("listaRecep");
+lista.innerHTML="";
+recepcionistas.forEach(r=>{
+lista.innerHTML+=`<div class="card">
+<b>${r.nome}</b><br>Senha: ${r.senha}<br>
+<button onclick="excluirRecep('${r.nome}')">Excluir</button>
+</div>`;
+});
+}
+
+function addRecep(){
+let nome=document.getElementById("novoNome").value.trim();
+let senha=document.getElementById("novaSenha").value.trim();
+if(recepcionistas.find(r=>r.nome===nome)){alert("Nome já existe");return;}
+recepcionistas.push({nome,senha});
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+renderListaRecep();
+}
+
+function excluirRecep(nome){
+recepcionistas=recepcionistas.filter(r=>r.nome!==nome);
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+renderListaRecep();
 }
 
 /* UTIL */
