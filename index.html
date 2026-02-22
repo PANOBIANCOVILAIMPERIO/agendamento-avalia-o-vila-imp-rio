@@ -2,76 +2,70 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Agendamento Avaliação Física Vila Império</title>
+<title>Agendamento Avaliação Física - Vila Império</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#f0f2f5}
+body{margin:0;font-family:Arial;background:#f4f6f9}
+.hidden{display:none}
+button{cursor:pointer}
+input{padding:6px;margin:4px 0;width:100%}
 
-/* LOGIN */
-.header-login{text-align:center;padding:30px;background:white;box-shadow:0 2px 5px rgba(0,0,0,0.2)}
-.header-login img{max-width:180px}
-.login-container{display:flex;justify-content:center;align-items:center;gap:40px;height:60vh}
+.header-login{text-align:center;padding:30px;background:white}
+.header-login img{max-width:160px}
+.login-container{display:flex;justify-content:center;gap:40px;margin-top:40px}
 .login-box{
 width:220px;height:220px;border:2px solid #ccc;border-radius:12px;
 display:flex;justify-content:center;align-items:center;
-font-size:22px;font-weight:bold;cursor:pointer;
-transition:0.3s;background:transparent
+font-size:22px;font-weight:bold;cursor:pointer;background:transparent
 }
-.login-box:hover{background:#f5f5f5;border-color:#1e88e5;color:#1e88e5;transform:scale(1.05)}
+.login-box:hover{border-color:#1e88e5;color:#1e88e5}
 
-/* EVO */
 .layout{display:flex;height:100vh}
-.sidebar{width:260px;background:#1f2937;color:white;display:flex;flex-direction:column}
-.sidebar-header{padding:20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.2)}
-.sidebar-header img{max-width:80px}
-.sidebar button{
-background:none;border:none;color:white;padding:15px;text-align:left;
-cursor:pointer;font-size:16px
-}
+.sidebar{width:250px;background:#1f2937;color:white;display:flex;flex-direction:column}
+.sidebar-header{text-align:center;padding:20px;border-bottom:1px solid #333}
+.sidebar button{background:none;border:none;color:white;padding:12px;text-align:left}
 .sidebar button:hover{background:#374151}
 .content{flex:1;padding:20px;overflow:auto}
 
-/* CARD */
-.card{
-background:white;padding:15px;margin-bottom:10px;border-radius:8px;
-box-shadow:0 2px 5px rgba(0,0,0,0.2)
-}
+.card{background:white;padding:12px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
 
-/* STATUS */
-.status{padding:4px 8px;border-radius:4px;color:white}
+.status{padding:3px 8px;border-radius:4px;color:white;font-size:12px}
 .pendente{background:gray}
-.realizado{background:green}
-.faltou{background:red}
-.bloqueado{background:red}
-.treinamento{background:purple}
+.mensagem{background:#facc15}
+.confirmado{background:#2563eb}
+.realizado{background:#16a34a}
+.faltou{background:#dc2626}
+.bloqueio{background:#dc2626}
+.treinamento{background:#7c3aed}
 
-/* MODAL */
-.modal{
-position:fixed;top:50%;left:50%;
-transform:translate(-50%,-50%);
-background:white;padding:20px;border-radius:10px;
-box-shadow:0 0 20px rgba(0,0,0,0.3);
-z-index:1000;width:600px;max-height:80vh;overflow:auto
+.grid-horarios{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:8px;
+margin-top:15px;
 }
-.calendario{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:15px}
-.dia{padding:10px;text-align:center;cursor:pointer;background:#eee;border-radius:5px}
-.dia:hover{background:#ddd}
+.horario-btn{
+padding:10px;
+border:1px solid #ccc;
+border-radius:6px;
+background:white;
+}
+.horario-btn:hover{background:#e5e7eb}
 
-#listaHorarios{
-display:grid;grid-template-columns:repeat(4,1fr);
-gap:10px;margin-top:15px
+.calendario-grid{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:5px;
+margin-top:15px;
 }
-.horario{
-padding:12px;background:#1e88e5;color:white;
-border-radius:6px;cursor:pointer;text-align:center;font-weight:bold
+.dia{
+padding:10px;
+background:white;
+border:1px solid #ccc;
+text-align:center;
+cursor:pointer;
 }
-.horario:hover{background:#1565c0}
-.horario.bloqueado{background:red}
-.horario.treinamento{background:purple}
-
-.hidden{display:none}
-input{padding:8px;margin:5px 0;width:100%}
-button.action{padding:6px 10px;margin:3px}
+.dia.lotado{background:#fecaca}
 </style>
 </head>
 <body>
@@ -81,189 +75,357 @@ button.action{padding:6px 10px;margin:3px}
 <div class="header-login">
 <img src="logo-panobianco.png">
 <h2>AGENDAMENTO AVALIAÇÃO FÍSICA</h2>
-<h3>VILA IMPÉRIO</h3>
+<h3>VILA IMPÉRIO - <span id="anoAtual"></span></h3>
 </div>
-
 <div class="login-container">
 <div class="login-box" onclick="loginAdmin()">ADMIN</div>
-<div class="login-box" onclick="abrirLoginRecepcao()">RECEPÇÃO</div>
+<div class="login-box" onclick="loginRecepcao()">RECEPÇÃO</div>
 <div class="login-box" onclick="loginProfessor()">PROFESSOR</div>
 </div>
 </div>
 
-<!-- LOGIN RECEPÇÃO -->
-<div id="loginRecepcaoModal" class="modal hidden">
-<h3>Login Recepção</h3>
-<input id="loginNome" placeholder="Nome">
-<input id="loginSenha" type="password" placeholder="Senha">
-<button onclick="loginRecepcao()">Entrar</button>
-<button onclick="fecharLoginRecepcao()">Cancelar</button>
-<p id="erroLogin" style="color:red"></p>
-</div>
-
-<!-- APP -->
+<!-- SISTEMA -->
 <div id="app" class="layout hidden">
 
 <div class="sidebar">
 <div class="sidebar-header">
-<img src="logo-panobianco.png">
-<h3>PANOBIANCO</h3>
-<span>Vila Império</span>
-<div id="userLabel"></div>
+<img src="logo-panobianco.png" style="max-width:80px">
+<h4 id="usuarioLogadoLabel"></h4>
 </div>
-
-<button onclick="modoAgendar()">Novo Agendamento</button>
-<button onclick="modoBloquearDia()">Bloquear Dia</button>
-<button onclick="modoBloquearHorario()">Bloquear Horário</button>
-<button onclick="abrirCadastroRecepcionistas()" id="btnCadastro" class="hidden">👥 Cadastro de Recepcionistas</button>
+<div id="menuLateral"></div>
 <button onclick="logout()">Sair</button>
 </div>
 
 <div class="content">
-<div id="agenda"></div>
-<div id="areaConteudo"></div>
+<div id="areaPrincipal"></div>
 </div>
 
-</div>
-
-<!-- CALENDARIO -->
-<div id="modalCalendario" class="modal hidden">
-<button onclick="mesAnterior()">◀</button>
-<span id="mesAno"></span>
-<button onclick="mesProximo()">▶</button>
-<br><br>
-<button onclick="fecharCalendario()">Voltar</button>
-<div id="calendario" class="calendario"></div>
-</div>
-
-<!-- HORARIOS -->
-<div id="modalHorarios" class="modal hidden">
-<h3 id="dataSelecionada"></h3>
-<button onclick="voltarParaCalendario()">⬅ Voltar</button>
-<div id="listaHorarios"></div>
 </div>
 
 <script>
 
-/* STORAGE */
-let agendamentos = JSON.parse(localStorage.getItem("agendamentos")||"[]");
-let recepcionistas = JSON.parse(localStorage.getItem("recepcionistas")||"[]");
+/* =================== ESTADO =================== */
 
-let usuarioTipo="";
-let modo="";
-let dataAtual="";
-let mes=new Date().getMonth();
-let ano=new Date().getFullYear();
+let usuarioTipo=null;
+let usuarioNome=null;
 
-/* LOGIN */
+let recepcionistas=JSON.parse(localStorage.getItem("recepcionistas")||"[]");
+let agendamentos=JSON.parse(localStorage.getItem("agendamentos")||"[]");
+let bloqueios=JSON.parse(localStorage.getItem("bloqueios")||"[]");
+
+document.getElementById("anoAtual").innerText=new Date().getFullYear();
+
+/* =================== LOGIN =================== */
+
 function loginAdmin(){
 let senha=prompt("Senha Admin:");
 if(senha==="696907"){
 usuarioTipo="admin";
-entrarSistema("ADMIN");
-document.getElementById("btnCadastro").classList.remove("hidden");
+usuarioNome="ADMIN";
+entrar();
 }
-}
-
-function abrirLoginRecepcao(){
-document.getElementById("loginRecepcaoModal").classList.remove("hidden");
-}
-
-function fecharLoginRecepcao(){
-document.getElementById("loginRecepcaoModal").classList.add("hidden");
 }
 
 function loginRecepcao(){
-let nome=document.getElementById("loginNome").value.trim();
-let senha=document.getElementById("loginSenha").value.trim();
-let user=recepcionistas.find(r=>r.nome===nome && r.senha===senha);
+let nome=prompt("Nome:");
+let senha=prompt("Senha:");
 
+let user=recepcionistas.find(r=>r.nome===nome && r.senha===senha);
 if(user){
 usuarioTipo="recepcao";
-entrarSistema(nome);
-fecharLoginRecepcao();
-}else{
-document.getElementById("erroLogin").innerText="Nome ou senha inválidos";
-}
+usuarioNome=nome;
+entrar();
+}else alert("Login inválido");
 }
 
 function loginProfessor(){
 usuarioTipo="professor";
-entrarSistema("PROFESSOR");
-}
-
-function entrarSistema(nome){
-document.getElementById("loginScreen").classList.add("hidden");
-document.getElementById("app").classList.remove("hidden");
-document.getElementById("userLabel").innerText=nome;
-renderAgenda();
+usuarioNome="PROFESSOR";
+entrar();
 }
 
 function logout(){location.reload();}
 
-/* CADASTRO RECEPCIONISTAS */
-function abrirCadastroRecepcionistas(){
+/* =================== ENTRAR =================== */
 
-let html=`
-<h2>Cadastro de Recepcionistas</h2>
-
-<input id="novoNome" placeholder="Nome único">
-<input id="novaSenha" type="password" placeholder="Senha">
-<button class="action" onclick="salvarRecepcionista()">Salvar</button>
-
-<hr>
-<div id="listaRecepcionistas"></div>
-`;
-
-document.getElementById("agenda").innerHTML="";
-document.getElementById("areaConteudo").innerHTML=html;
-
-renderListaRecepcionistas();
+function entrar(){
+limparAntigos();
+document.getElementById("loginScreen").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+document.getElementById("usuarioLogadoLabel").innerText=usuarioNome;
+renderMenu();
+mostrarHoje();
 }
 
-function salvarRecepcionista(){
-let nome=document.getElementById("novoNome").value.trim();
-let senha=document.getElementById("novaSenha").value.trim();
-if(!nome||!senha){alert("Preencha todos os campos");return;}
-if(recepcionistas.find(r=>r.nome===nome)){
-alert("Já existe recepcionista com esse nome");return;
-}
-recepcionistas.push({nome,senha});
-localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
-renderListaRecepcionistas();
+/* =================== LIMPEZA 30 DIAS =================== */
+
+function limparAntigos(){
+let hoje=new Date();
+agendamentos=agendamentos.filter(a=>{
+let d=new Date(a.dataISO);
+return ((hoje-d)/(1000*60*60*24))<=30;
+});
+bloqueios=bloqueios.filter(b=>{
+let d=new Date(b.dataISO);
+return ((hoje-d)/(1000*60*60*24))<=30;
+});
+salvar();
 }
 
-function renderListaRecepcionistas(){
-let div=document.getElementById("listaRecepcionistas");
-div.innerHTML="";
-recepcionistas.forEach((r,index)=>{
-div.innerHTML+=`
+/* =================== MENU =================== */
+
+function renderMenu(){
+let m=document.getElementById("menuLateral");
+m.innerHTML="";
+m.innerHTML+=`<button onclick="mostrarHoje()">📅 Hoje</button>`;
+m.innerHTML+=`<button onclick="abrirCalendario()">📆 Calendário</button>`;
+m.innerHTML+=`<button onclick="buscarID()">🔎 Buscar ID</button>`;
+
+if(usuarioTipo!=="professor"){
+m.innerHTML+=`<button onclick="novoAgendamento()">➕ Novo</button>`;
+m.innerHTML+=`<button onclick="bloquearDia()">🚫 Bloquear Dia</button>`;
+m.innerHTML+=`<button onclick="bloquearHorario()">⛔ Bloquear Horário</button>`;
+}
+
+if(usuarioTipo==="admin"){
+m.innerHTML+=`<button onclick="cadastroRecep()">👥 Recepcionistas</button>`;
+}
+}
+
+/* =================== ORDENAR =================== */
+
+function ordenar(){
+agendamentos.sort((a,b)=>{
+if(a.dataISO===b.dataISO) return a.horario.localeCompare(b.horario);
+return new Date(a.dataISO)-new Date(b.dataISO);
+});
+}
+
+/* =================== HOJE =================== */
+
+function mostrarHoje(){
+ordenar();
+let hojeISO=new Date().toISOString().split("T")[0];
+let lista=agendamentos.filter(a=>a.dataISO===hojeISO);
+renderLista(lista,"Agendamentos de Hoje");
+}
+
+/* =================== RENDER LISTA =================== */
+
+function renderLista(lista,titulo){
+let area=document.getElementById("areaPrincipal");
+area.innerHTML=`<h2>${titulo}</h2><button onclick="mostrarHoje()">⬅ Voltar</button><br><br>`;
+if(lista.length===0){area.innerHTML+="Nenhum.";return;}
+
+lista.forEach(a=>{
+area.innerHTML+=`
 <div class="card">
-<b>${r.nome}</b>
-<button onclick="alterarSenha(${index})">Alterar Senha</button>
-<button onclick="excluirRecepcionista(${index})">Excluir</button>
+<b>${formatar(a.dataISO)} - ${a.horario}</b><br>
+${a.nome} (ID: ${a.id})<br>
+<span class="status ${a.status}">${a.status}</span><br>
+${acoes(a)}
 </div>`;
 });
 }
 
-function alterarSenha(index){
-let nova=prompt("Nova senha:");
-if(nova){
-recepcionistas[index].senha=nova;
-localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+/* =================== AÇÕES =================== */
+
+function acoes(a){
+let h="";
+if(usuarioTipo==="professor"){
+h+=`<button onclick="alterar('${a.id}','${a.dataISO}','${a.horario}','realizado')">Realizada</button>`;
+h+=`<button onclick="alterar('${a.id}','${a.dataISO}','${a.horario}','faltou')">Faltou</button>`;
+}
+if(usuarioTipo!=="professor"){
+if(a.status==="pendente")h+=`<button onclick="alterar('${a.id}','${a.dataISO}','${a.horario}','mensagem')">Mensagem enviada</button>`;
+if(a.status==="mensagem")h+=`<button onclick="alterar('${a.id}','${a.dataISO}','${a.horario}','confirmado')">Presença confirmada</button>`;
+if(usuarioTipo==="admin"||a.criadoPor===usuarioNome)
+h+=`<button onclick="cancelar('${a.id}','${a.dataISO}','${a.horario}')">Cancelar</button>`;
+}
+return h;
+}
+
+function alterar(id,dataISO,horario,status){
+let a=agendamentos.find(x=>x.id===id&&x.dataISO===dataISO&&x.horario===horario);
+if(!a)return;
+a.status=status;
+salvar();
+mostrarHoje();
+}
+
+function cancelar(id,dataISO,horario){
+let i=agendamentos.findIndex(x=>x.id===id&&x.dataISO===dataISO&&x.horario===horario);
+if(i===-1)return;
+if(usuarioTipo!=="admin"&&agendamentos[i].criadoPor!==usuarioNome){
+alert("Somente responsável ou admin");
+return;
+}
+agendamentos.splice(i,1);
+salvar();
+mostrarHoje();
+}
+
+/* =================== NOVO AGENDAMENTO =================== */
+
+function novoAgendamento(){
+abrirCalendario(true);
+}
+
+/* =================== CALENDÁRIO =================== */
+
+function abrirCalendario(modoAgendamento=false){
+
+let area=document.getElementById("areaPrincipal");
+let hoje=new Date();
+let mes=hoje.getMonth();
+let ano=hoje.getFullYear();
+
+renderCalendario(mes,ano,modoAgendamento);
+}
+
+function renderCalendario(mes,ano,modoAgendamento){
+
+let area=document.getElementById("areaPrincipal");
+area.innerHTML=`<h2>Calendário</h2>
+<button onclick="mostrarHoje()">⬅ Voltar</button>
+<div class="calendario-grid" id="gridCal"></div>`;
+
+let dias=new Date(ano,mes+1,0).getDate();
+let grid=document.getElementById("gridCal");
+
+for(let d=1;d<=dias;d++){
+let dataISO=new Date(ano,mes,d).toISOString().split("T")[0];
+let lotado=agendamentos.filter(a=>a.dataISO===dataISO).length>=21;
+let div=document.createElement("div");
+div.className="dia"+(lotado?" lotado":"");
+div.innerText=d;
+div.onclick=()=>selecionarDia(dataISO,modoAgendamento);
+grid.appendChild(div);
 }
 }
 
-function excluirRecepcionista(index){
-if(confirm("Deseja excluir?")){
-recepcionistas.splice(index,1);
-localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
-renderListaRecepcionistas();
-}
+/* =================== HORÁRIOS =================== */
+
+const horarios=[
+"06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30",
+"16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40",
+"19:20","19:40","21:00","21:20"
+];
+
+function selecionarDia(dataISO,modoAgendamento){
+
+let area=document.getElementById("areaPrincipal");
+area.innerHTML=`<h2>${formatar(dataISO)}</h2>
+<button onclick="abrirCalendario(${modoAgendamento})">⬅ Voltar</button>
+<div class="grid-horarios" id="gridHor"></div>`;
+
+let grid=document.getElementById("gridHor");
+
+horarios.forEach(h=>{
+let ocupado=agendamentos.find(a=>a.dataISO===dataISO&&a.horario===h);
+let bloqueado=bloqueios.find(b=>b.dataISO===dataISO&&b.horario===h);
+
+let btn=document.createElement("button");
+btn.className="horario-btn";
+btn.innerText=h;
+
+if(ocupado||bloqueado){
+btn.disabled=true;
+btn.style.background="#ddd";
+}else if(modoAgendamento){
+btn.onclick=()=>confirmarAgendamento(dataISO,h);
 }
 
-/* RESTANTE DO SISTEMA (agendamento, bloqueio, etc.) */
-/* Mantido exatamente como estava */
+grid.appendChild(btn);
+});
+}
+
+/* =================== CONFIRMAR =================== */
+
+function confirmarAgendamento(dataISO,horario){
+
+let nome=prompt("Nome do aluno:");
+let id=prompt("ID numérico (até 10 dígitos):");
+
+if(!/^[0-9]{1,10}$/.test(id)){alert("ID inválido");return;}
+if(agendamentos.find(a=>a.id===id)){alert("ID já existente");return;}
+
+agendamentos.push({
+nome,id,dataISO,horario,
+status:"pendente",
+criadoPor:usuarioNome
+});
+
+salvar();
+mostrarHoje();
+}
+
+/* =================== BLOQUEIO =================== */
+
+function bloquearDia(){
+abrirCalendario(false);
+alert("Clique no dia desejado.");
+}
+
+function bloquearHorario(){
+abrirCalendario(false);
+alert("Clique no dia e escolha horário.");
+}
+
+/* =================== RECEPCIONISTAS =================== */
+
+function cadastroRecep(){
+
+let area=document.getElementById("areaPrincipal");
+area.innerHTML=`<h2>Cadastro Recepcionistas</h2>
+<input id="novoNome" placeholder="Nome único">
+<input id="novaSenha" placeholder="Senha">
+<button onclick="addRecep()">Cadastrar</button>
+<button onclick="mostrarHoje()">⬅ Voltar</button><br><br>`;
+
+recepcionistas.forEach(r=>{
+area.innerHTML+=`
+<div class="card">
+${r.nome}
+<button onclick="removerRecep('${r.nome}')">Excluir</button>
+</div>`;
+});
+}
+
+function addRecep(){
+let nome=document.getElementById("novoNome").value.trim();
+let senha=document.getElementById("novaSenha").value.trim();
+if(recepcionistas.find(r=>r.nome===nome)){alert("Nome já existe");return;}
+recepcionistas.push({nome,senha});
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+cadastroRecep();
+}
+
+function removerRecep(nome){
+recepcionistas=recepcionistas.filter(r=>r.nome!==nome);
+localStorage.setItem("recepcionistas",JSON.stringify(recepcionistas));
+cadastroRecep();
+}
+
+/* =================== BUSCA =================== */
+
+function buscarID(){
+let id=prompt("Digite ID:");
+let lista=agendamentos.filter(a=>a.id===id);
+renderLista(lista,"Resultado Busca");
+}
+
+/* =================== UTIL =================== */
+
+function formatar(dataISO){
+let d=new Date(dataISO);
+return d.toLocaleDateString("pt-BR");
+}
+
+function salvar(){
+localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
+localStorage.setItem("bloqueios",JSON.stringify(bloqueios));
+}
 
 </script>
 </body>
