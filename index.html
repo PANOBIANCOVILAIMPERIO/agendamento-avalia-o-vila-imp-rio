@@ -382,7 +382,23 @@ function salvar(){
 localStorage.setItem("agendamentos",JSON.stringify(agendamentos));
 localStorage.setItem("bloqueios",JSON.stringify(bloqueios));
 }
+function mesAnt(){
+    state.mes--;
+    if(state.mes < 0){
+        state.mes = 11;
+        state.ano--;
+    }
+    renderCalendario();
+}
 
+function mesProx(){
+    state.mes++;
+    if(state.mes > 11){
+        state.mes = 0;
+        state.ano++;
+    }
+    renderCalendario();
+}
 function formatar(a,m,d){
 return a+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
 }
