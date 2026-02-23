@@ -5,7 +5,6 @@
 <title>Agendamento Avaliação Física - Vila Império</title>
 
 <style>
-/* (SEU CSS ORIGINAL — NÃO MUDEI NADA) */
 body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#f1f3f4;color:#202124;}
 button{cursor:pointer;padding:8px 14px;margin:4px;border:none;border-radius:8px;background:#e8eaed;font-size:14px;transition:all 0.2s ease;}
 button:hover{background:#dadce0;}
@@ -40,11 +39,26 @@ button:hover{background:#dadce0;}
 .realizado{background:#34a853;color:white;}
 .faltou{background:#ea4335;color:white;}
 </style>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAfJIYu9tE5UWx1IpI0H3X_6_ge1CxQ-2Y",
+  authDomain: "agendamento-panobianco.firebaseapp.com",
+  projectId: "agendamento-panobianco",
+  storageBucket: "agendamento-panobianco.firebasestorage.app",
+  messagingSenderId: "607650485344",
+  appId: "1:607650485344:web:8cfecbdb06e5f1cdcb9f05"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
 </head>
 <body>
-
-<!-- (SEU HTML ORIGINAL — NÃO ALTERADO) -->
-
 <div id="loginScreen">
 <div class="header-login">
 <img src="logo-panobianco.png">
@@ -72,99 +86,292 @@ button:hover{background:#dadce0;}
 </div>
 </div>
 
-<script type="module">
-
-/* 🔥 FIREBASE */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAfJIYu9tE5UWx1IpI0H3X_6_ge1CxQ-2Y",
-  authDomain: "agendamento-panobianco.firebaseapp.com",
-  projectId: "agendamento-panobianco",
-  storageBucket: "agendamento-panobianco.firebasestorage.app",
-  messagingSenderId: "607650485344",
-  appId: "1:607650485344:web:8cfecbdb06e5f1cdcb9f05"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const colAg = collection(db,"agendamentos");
-const colBloq = collection(db,"bloqueios");
-const colRecep = collection(db,"recepcionistas");
-
-/* 🔄 ESTADO */
-let agendamentos=[];
-let bloqueios=[];
-let recepcionistas=[];
-
-/* 🔄 SINCRONIZAÇÃO REALTIME */
-onSnapshot(colAg,(snap)=>{
-  agendamentos = snap.docs.map(d=>({idDoc:d.id,...d.data()}));
-  if(state?.dataAtual) abrirDia(state.dataAtual);
-});
-onSnapshot(colBloq,(snap)=>{
-  bloqueios = snap.docs.map(d=>({idDoc:d.id,...d.data()}));
-});
-onSnapshot(colRecep,(snap)=>{
-  recepcionistas = snap.docs.map(d=>({idDoc:d.id,...d.data()}));
-});
-
-/* ---------------- RESTANTE DO SEU SISTEMA ---------------- */
-/* NÃO MUDEI SUA LÓGICA, APENAS TROQUEI SALVAR POR FIRESTORE */
+<script>
 
 const horarios=["06:30","06:50","07:50","08:10","08:30","08:50","09:10","09:30","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:20","19:40","21:00","21:20"];
 
-let state={tipo:null,nome:null,mes:new Date().getMonth(),ano:new Date().getFullYear(),modo:null,dataAtual:null};
+let state={
+tipo:null,
+nome:null,
+mes:new Date().getMonth(),
+ano:new Date().getFullYear(),
+modo:null,
+dataAtual:null
+};
+
+let agendamentos=[];
+let bloqueios=[];
+let recepcionistas=[];
+let dadosCarregados=false;
+
+/* 🔄 CARREGAMENTO INICIAL FIRESTORE */
+Promise.all([
+  new Promise(res=>{
+    db.collection("agendamentos").onSnapshot(snap=>{
+      agendamentos=snap.docs.map(d=>({idDoc:d.id,...d.data()}));
+      res();
+      if(dadosCarregados) atualizarTela();
+    });
+  }),
+  new Promise(res=>{
+    db.collection("bloqueios").onSnapshot(snap=>{
+      bloqueios=snap.docs.map(d=>({idDoc:d.id,...d.data()}));
+      res();
+      if(dadosCarregados) atualizarTela();
+    });
+  }),
+  new Promise(res=>{
+    db.collection("recepcionistas").onSnapshot(snap=>{
+      recepcionistas=snap.docs.map(d=>({idDoc:d.id,...d.data()}));
+      res();
+    });
+  })
+]).then(()=>{
+  dadosCarregados=true;
+});
+
+function atualizarTela(){
+  if(state.dataAtual) abrirDia(state.dataAtual);
+  else renderCalendario();
+}
 
 document.getElementById("anoAtual").innerText=new Date().getFullYear();
 
-window.loginAdmin=function(){
+/* LOGIN */
+function loginAdmin(){
 if(prompt("Senha Admin:")!=="696907") return;
 state.tipo="admin"; state.nome="ADMIN"; entrar();
 }
-window.loginRecepcao=function(){
+function loginRecepcao(){
 let nome=prompt("Nome:");
 let senha=prompt("Senha:");
 let u=recepcionistas.find(r=>r.nome===nome && r.senha===senha);
 if(!u) return alert("Login inválido");
 state.tipo="recepcao"; state.nome=nome; entrar();
 }
-window.loginProfessor=function(){
+function loginProfessor(){
 state.tipo="professor"; state.nome="PROFESSOR"; entrar();
 }
-window.logout=function(){location.reload();}
+function entrar(){
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("app").style.display="flex";
+document.getElementById("usuario").innerText=state.nome;
+renderMenu();
+renderCalendario();
+}
+function logout(){location.reload();}
+/* MENU */
+function renderMenu(){
+let m=document.getElementById("menu");
+m.innerHTML="";
+m.innerHTML+=`<button onclick="state.modo=null;renderCalendario()">📆 Calendário</button>`;
+if(state.tipo!=="professor"){
+m.innerHTML+=`<button onclick="state.modo='agendar';renderCalendario()">➕ Agendar</button>`;
+m.innerHTML+=`<button onclick="state.modo='bloqDia';renderCalendario()">🚫 Bloquear Dia</button>`;
+m.innerHTML+=`<button onclick="state.modo='bloqHora';renderCalendario()">⛔ Bloquear Horário</button>`;
+m.innerHTML+=`<button onclick="abrirBusca()">🔎 Buscar por ID</button>`;
+}
+if(state.tipo==="admin"){
+m.innerHTML+=`<button onclick="abrirRecep()">👥 Recepcionistas</button>`;
+}
+}
 
-/* 🔥 AGENDAR */
-window.agendar=async function(data,horario){
+/* CALENDÁRIO */
+function renderCalendario(){
+let main=document.getElementById("main");
+main.innerHTML=`
+<div class="cal-header">
+<button onclick="mesAnt()">◀</button>
+<h2>${nomeMes(state.mes)} ${state.ano}</h2>
+<button onclick="mesProx()">▶</button>
+</div>
+<div class="cal-grid">
+<div>DOM</div><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SAB</div>
+</div>
+<div class="cal-grid" id="grid"></div>`;
+let primeiro=new Date(state.ano,state.mes,1).getDay();
+let total=new Date(state.ano,state.mes+1,0).getDate();
+let grid=document.getElementById("grid");
+for(let i=0;i<primeiro;i++) grid.appendChild(document.createElement("div"));
+for(let d=1;d<=total;d++){
+let data=formatar(state.ano,state.mes,d);
+let diaSemana=new Date(data).getDay();
+let div=document.createElement("div");
+div.className="dia";
+if(diaSemana>=1 && diaSemana<=4){
+div.classList.add("liberado");
+div.onclick=()=>clicarDia(data);
+}else div.classList.add("inativo");
+if(bloqueios.find(b=>b.data===data && b.tipo==="dia")){
+div.classList.add("bloqueado");
+}
+div.innerText=d;
+grid.appendChild(div);
+}
+}
+
+function clicarDia(data){
+if(state.modo==="bloqDia"){
+let existe=bloqueios.find(b=>b.data===data && b.tipo==="dia");
+if(!existe){
+db.collection("bloqueios").add({data,tipo:"dia"});
+}else if(state.tipo==="admin"){
+db.collection("bloqueios").doc(existe.idDoc).delete();
+}
+return;
+}
+abrirDia(data);
+}
+
+function abrirDia(data){
+state.dataAtual=data;
+let bloqueioDia=bloqueios.find(b=>b.data===data && b.tipo==="dia");
+if(bloqueioDia && state.tipo!=="admin"){
+alert("Dia bloqueado");
+return;
+}
+let main=document.getElementById("main");
+main.innerHTML=`<h2>${data}</h2>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div class="grid-horarios" id="horarios"></div>
+<div id="lista"></div>`;
+let grid=document.getElementById("horarios");
+
+horarios.forEach(h=>{
+let btn=document.createElement("button");
+btn.className="horario";
+btn.innerText=h;
+let ocupado=agendamentos.find(a=>a.data===data && a.horario===h);
+let bloqueado=bloqueios.find(b=>b.data===data && b.horario===h);
+
+if(ocupado){btn.classList.add("ocupado");btn.disabled=true;}
+
+if(bloqueado){
+btn.classList.add("bloqueado");
+if(state.tipo==="admin"){
+btn.onclick=()=>db.collection("bloqueios").doc(bloqueado.idDoc).delete();
+}
+}else{
+if(state.modo==="agendar" && !ocupado){
+btn.onclick=()=>agendar(data,h);
+}
+if(state.modo==="bloqHora" && !ocupado){
+btn.onclick=()=>db.collection("bloqueios").add({data,horario:h,tipo:"hora"});
+}
+}
+grid.appendChild(btn);
+});
+mostrarLista(data);
+}
+
+function agendar(data,horario){
 let nome=prompt("Nome do aluno:");
 let id=prompt("ID numérico até 10 dígitos:");
 if(!/^[0-9]{1,10}$/.test(id)) return alert("ID inválido");
+let existe=agendamentos.find(a=>a.id===id);
+if(existe && existe.nome!==nome) return alert("ID já vinculado a outro nome");
 
-await addDoc(colAg,{nome,id,data,horario,status:"pendente",criadoPor:state.nome});
+db.collection("agendamentos").add({
+nome,id,data,horario,status:"pendente",criadoPor:state.nome
+});
 }
 
-/* 🔥 STATUS */
-window.msg=async i=>await updateDoc(doc(db,"agendamentos",agendamentos[i].idDoc),{status:"mensagem"});
-window.conf=async i=>await updateDoc(doc(db,"agendamentos",agendamentos[i].idDoc),{status:"confirmado"});
-window.real=async i=>await updateDoc(doc(db,"agendamentos",agendamentos[i].idDoc),{status:"realizado"});
-window.falt=async i=>await updateDoc(doc(db,"agendamentos",agendamentos[i].idDoc),{status:"faltou"});
-
-/* 🔥 CANCELAR */
-window.cancel=async function(i){
-await deleteDoc(doc(db,"agendamentos",agendamentos[i].idDoc));
+function mostrarLista(data){
+let lista=agendamentos
+.filter(a=>a.data===data)
+.sort((a,b)=>a.horario.localeCompare(b.horario));
+let div=document.getElementById("lista");
+div.innerHTML="<h3>Agendamentos:</h3>";
+lista.forEach(a=>{
+div.innerHTML+=`
+<div class="card">
+<b>${a.horario}</b> - ${a.nome} (ID:${a.id})<br>
+<span class="status ${a.status}">${a.status}</span><br>
+${state.tipo!=="professor"?
+`<button onclick="alterarStatus('${a.idDoc}','mensagem')">Mensagem enviada</button>
+<button onclick="alterarStatus('${a.idDoc}','confirmado')">Presença confirmada</button>
+<button onclick="cancelar('${a.idDoc}','${a.criadoPor}')">Cancelar</button>`
+:
+`<button onclick="alterarStatus('${a.idDoc}','realizado')">Avaliação realizada</button>
+<button onclick="alterarStatus('${a.idDoc}','faltou')">Faltou</button>`}
+</div>`;
+});
 }
 
-/* 🔥 RECEPCIONISTA */
-window.addRecep=async function(){
+function alterarStatus(idDoc,status){
+db.collection("agendamentos").doc(idDoc).update({status});
+}
+
+function cancelar(idDoc,criadoPor){
+if(state.tipo==="admin" || criadoPor===state.nome){
+db.collection("agendamentos").doc(idDoc).delete();
+}else alert("Somente quem agendou ou admin pode cancelar.");
+}
+
+function abrirBusca(){
+let main=document.getElementById("main");
+main.innerHTML=`<h2>Buscar por ID</h2>
+<input id="buscaID" placeholder="Digite o ID">
+<button onclick="buscarID()">Buscar</button>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="resultado"></div>`;
+}
+
+function buscarID(){
+let id=document.getElementById("buscaID").value.trim();
+let div=document.getElementById("resultado");
+div.innerHTML="";
+let encontrados=agendamentos.filter(a=>a.id===id);
+if(encontrados.length===0){
+div.innerHTML="<div class='card'>Nenhum agendamento encontrado</div>";
+return;
+}
+encontrados.forEach(a=>{
+div.innerHTML+=`
+<div class="card">
+<b>${a.nome}</b><br>
+Data: ${a.data}<br>
+Horário: ${a.horario}<br>
+Status: ${a.status}
+</div>`;
+});
+}
+
+function abrirRecep(){
+let main=document.getElementById("main");
+main.innerHTML=`<h2>Recepcionistas</h2>
+<input id="nomeR" placeholder="Nome único">
+<input id="senhaR" placeholder="Senha">
+<button onclick="addRecep()">Cadastrar</button>
+<button onclick="renderCalendario()">⬅ Voltar</button>
+<div id="listaR"></div>`;
+renderListaR();
+}
+
+function renderListaR(){
+let div=document.getElementById("listaR");
+div.innerHTML="";
+recepcionistas.forEach(r=>{
+div.innerHTML+=`<div class="card">
+<b>${r.nome}</b><br>
+Senha: ${r.senha}<br>
+<button onclick="db.collection('recepcionistas').doc('${r.idDoc}').delete()">Excluir</button>
+</div>`;
+});
+}
+
+function addRecep(){
 let nome=document.getElementById("nomeR").value.trim();
 let senha=document.getElementById("senhaR").value.trim();
-await addDoc(colRecep,{nome,senha});
+if(!nome||!senha) return alert("Preencha tudo");
+if(recepcionistas.find(r=>r.nome===nome)) return alert("Nome já existe");
+db.collection("recepcionistas").add({nome,senha});
 }
-window.removerRecep=async i=>{
-await deleteDoc(doc(db,"recepcionistas",recepcionistas[i].idDoc));
-}
+
+function mesAnt(){state.mes--;if(state.mes<0){state.mes=11;state.ano--;}renderCalendario();}
+function mesProx(){state.mes++;if(state.mes>11){state.mes=0;state.ano++;}renderCalendario();}
+function formatar(a,m,d){return a+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");}
+function nomeMes(m){return["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][m];}
 
 </script>
 </body>
