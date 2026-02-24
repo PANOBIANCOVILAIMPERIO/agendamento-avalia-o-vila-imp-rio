@@ -131,8 +131,17 @@ Promise.all([
 });
 
 function atualizarTela(){
-  if(state.dataAtual) abrirDia(state.dataAtual);
-  else renderCalendario();
+
+  if(state.modo === "bloqDia"){
+    renderCalendario();
+    return;
+  }
+
+  if(state.dataAtual){
+    abrirDia(state.dataAtual);
+  } else {
+    renderCalendario();
+  }
 }
 
 document.getElementById("anoAtual").innerText=new Date().getFullYear();
@@ -211,16 +220,22 @@ grid.appendChild(div);
 }
 
 function clicarDia(data){
-if(state.modo==="bloqDia"){
-let existe=bloqueios.find(b=>b.data===data && b.tipo==="dia");
-if(!existe){
-db.collection("bloqueios").add({data,tipo:"dia"});
-}else if(state.tipo==="admin"){
-db.collection("bloqueios").doc(existe.idDoc).delete();
-}
-return;
-}
-abrirDia(data);
+
+  if(state.modo === "bloqDia"){
+
+    let existe = bloqueios.find(b=>b.data===data && b.tipo==="dia");
+
+    if(!existe){
+      db.collection("bloqueios").add({data,tipo:"dia"});
+    } else if(state.tipo==="admin"){
+      db.collection("bloqueios").doc(existe.idDoc).delete();
+    }
+
+    renderCalendario();
+    return;
+  }
+
+  abrirDia(data);
 }
 
 function abrirDia(data){
